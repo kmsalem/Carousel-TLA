@@ -19,21 +19,20 @@
     <stringAttribute key="modelBehaviorNext" value=""/>
     <stringAttribute key="modelBehaviorSpec" value="Spec"/>
     <intAttribute key="modelBehaviorSpecType" value="1"/>
-    <stringAttribute key="modelBehaviorVars" value="unacked, pc, nodes, writeNodes, completedBefore, readQuorumNodes, progress, queue, writeQuorumNodes, switchHappened, status, message, secondReadQuorumNodes, stack"/>
+    <stringAttribute key="modelBehaviorVars" value="counter, switchHappened, stack, channels, node, status, unacked, message, pc, queue, incoming"/>
     <stringAttribute key="modelComments" value=""/>
     <booleanAttribute key="modelCorrectnessCheckDeadlock" value="true"/>
-    <listAttribute key="modelCorrectnessInvariants">
-        <listEntry value="1Correctness"/>
-    </listAttribute>
+    <listAttribute key="modelCorrectnessInvariants"/>
     <listAttribute key="modelCorrectnessProperties">
-        <listEntry value="1Liveness"/>
+        <listEntry value="1Termination"/>
+        <listEntry value="1Correctness"/>
     </listAttribute>
     <stringAttribute key="modelExpressionEval" value=""/>
     <stringAttribute key="modelParameterActionConstraint" value=""/>
     <listAttribute key="modelParameterConstants">
         <listEntry value="N;;3;0;0"/>
-        <listEntry value="Quorum;;2;0;0"/>
-        <listEntry value="defaultInitValue;;;0;0"/>
+        <listEntry value="NumOfMessages;;6;0;0"/>
+        <listEntry value="defaultInitValue;;defaultInitValue;1;0"/>
     </listAttribute>
     <stringAttribute key="modelParameterContraint" value=""/>
     <listAttribute key="modelParameterDefinitions"/>

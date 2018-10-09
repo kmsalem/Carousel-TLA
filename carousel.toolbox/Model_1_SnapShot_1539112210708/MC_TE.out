@@ -2,7 +2,7 @@
 TLC2 Version 2.13 of 18 July 2018
 @!@!@ENDMSG 2262 @!@!@
 @!@!@STARTMSG 2187:0 @!@!@
-Running breadth-first search Model-Checking with seed -8956700183066708850 with 4 workers on 8 cores with 1318MB heap and 2633MB offheap memory (Linux 4.15.0-36-generic amd64, Oracle Corporation 10.0.2 x86_64).
+Running breadth-first search Model-Checking with seed -4386793749180256671 with 4 workers on 8 cores with 1318MB heap and 2633MB offheap memory (Linux 4.15.0-36-generic amd64, Oracle Corporation 10.0.2 x86_64).
 @!@!@ENDMSG 2187 @!@!@
 @!@!@STARTMSG 2220:0 @!@!@
 Starting SANY...
@@ -23,7 +23,7 @@ Semantic processing of module MC
 SANY finished.
 @!@!@ENDMSG 2219 @!@!@
 @!@!@STARTMSG 2185:0 @!@!@
-Starting... (2018-10-09 15:10:42)
+Starting... (2018-10-09 15:10:09)
 @!@!@ENDMSG 2185 @!@!@
 @!@!@STARTMSG 2212:0 @!@!@
 Implied-temporal checking--satisfiability problem has 2 branches.
@@ -50,7 +50,7 @@ While working on the initial state:
 
 @!@!@ENDMSG 2102 @!@!@
 @!@!@STARTMSG 2201:0 @!@!@
-The coverage statistics at 2018-10-09 15:10:42
+The coverage statistics at 2018-10-09 15:10:09
 @!@!@ENDMSG 2201 @!@!@
 @!@!@STARTMSG 2221:0 @!@!@
   line 104, col 16 to line 104, col 83 of module carousel: 0
@@ -233,11 +233,11 @@ The coverage statistics at 2018-10-09 15:10:42
 End of statistics.
 @!@!@ENDMSG 2202 @!@!@
 @!@!@STARTMSG 2200:0 @!@!@
-Progress(1) at 2018-10-09 15:10:42: 1 states generated (126 s/min), 1 distinct states found (126 ds/min), 1 states left on queue.
+Progress(1) at 2018-10-09 15:10:09: 1 states generated (127 s/min), 1 distinct states found (127 ds/min), 1 states left on queue.
 @!@!@ENDMSG 2200 @!@!@
 @!@!@STARTMSG 2199:0 @!@!@
 1 states generated, 1 distinct states found, 1 states left on queue.
 @!@!@ENDMSG 2199 @!@!@
 @!@!@STARTMSG 2186:0 @!@!@
-Finished in 720ms at (2018-10-09 15:10:42)
+Finished in 698ms at (2018-10-09 15:10:09)
 @!@!@ENDMSG 2186 @!@!@
