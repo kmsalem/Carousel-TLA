@@ -1,0 +1,960 @@
+@!@!@STARTMSG 2262:0 @!@!@
+TLC2 Version 2.13 of 18 July 2018
+@!@!@ENDMSG 2262 @!@!@
+@!@!@STARTMSG 2187:0 @!@!@
+Running breadth-first search Model-Checking with seed 6378538897854914099 with 4 workers on 8 cores with 1318MB heap and 2633MB offheap memory (Linux 4.15.0-36-generic amd64, Oracle Corporation 10.0.2 x86_64).
+@!@!@ENDMSG 2187 @!@!@
+@!@!@STARTMSG 2220:0 @!@!@
+Starting SANY...
+@!@!@ENDMSG 2220 @!@!@
+Parsing file /home/dzklavier/tla/carousel.toolbox/Model_1/MC.tla
+Parsing file /home/dzklavier/tla/carousel.toolbox/Model_1/carousel.tla
+Parsing file /home/dzklavier/Downloads/toolbox/plugins/org.lamport.tlatools_1.0.0.201807180447/tla2sany/StandardModules/TLC.tla
+Parsing file /home/dzklavier/Downloads/toolbox/plugins/org.lamport.tlatools_1.0.0.201807180447/tla2sany/StandardModules/Naturals.tla
+Parsing file /home/dzklavier/Downloads/toolbox/plugins/org.lamport.tlatools_1.0.0.201807180447/tla2sany/StandardModules/FiniteSets.tla
+Parsing file /home/dzklavier/Downloads/toolbox/plugins/org.lamport.tlatools_1.0.0.201807180447/tla2sany/StandardModules/Sequences.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module carousel
+Semantic processing of module MC
+@!@!@STARTMSG 2219:0 @!@!@
+SANY finished.
+@!@!@ENDMSG 2219 @!@!@
+@!@!@STARTMSG 2185:0 @!@!@
+Starting... (2018-10-09 10:32:20)
+@!@!@ENDMSG 2185 @!@!@
+@!@!@STARTMSG 2189:0 @!@!@
+Computing initial states...
+@!@!@ENDMSG 2189 @!@!@
+@!@!@STARTMSG 2269:0 @!@!@
+Computed 2 initial states...
+@!@!@ENDMSG 2269 @!@!@
+@!@!@STARTMSG 2269:0 @!@!@
+Computed 4 initial states...
+@!@!@ENDMSG 2269 @!@!@
+@!@!@STARTMSG 2269:0 @!@!@
+Computed 8 initial states...
+@!@!@ENDMSG 2269 @!@!@
+@!@!@STARTMSG 2269:0 @!@!@
+Computed 16 initial states...
+@!@!@ENDMSG 2269 @!@!@
+@!@!@STARTMSG 2269:0 @!@!@
+Computed 32 initial states...
+@!@!@ENDMSG 2269 @!@!@
+@!@!@STARTMSG 2269:0 @!@!@
+Computed 64 initial states...
+@!@!@ENDMSG 2269 @!@!@
+@!@!@STARTMSG 2269:0 @!@!@
+Computed 128 initial states...
+@!@!@ENDMSG 2269 @!@!@
+@!@!@STARTMSG 2269:0 @!@!@
+Computed 256 initial states...
+@!@!@ENDMSG 2269 @!@!@
+@!@!@STARTMSG 2269:0 @!@!@
+Computed 512 initial states...
+@!@!@ENDMSG 2269 @!@!@
+@!@!@STARTMSG 2190:0 @!@!@
+Finished computing initial states: 729 distinct states generated.
+@!@!@ENDMSG 2190 @!@!@
+@!@!@STARTMSG 2200:0 @!@!@
+Progress(20) at 2018-10-09 10:32:24: 596847 states generated (596,847 s/min), 317113 distinct states found (317,113 ds/min), 27107 states left on queue.
+@!@!@ENDMSG 2200 @!@!@
+@!@!@STARTMSG 2114:1 @!@!@
+Deadlock reached.
+@!@!@ENDMSG 2114 @!@!@
+@!@!@STARTMSG 2121:1 @!@!@
+The behavior up to this point is:
+@!@!@ENDMSG 2121 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+1: <Initial predicate>
+/\ unacked = 0
+/\ pc = [handler1 |-> "P0", handler2 |-> "P0"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{}, {}, {}>>
+/\ queue = <<"first step", "second step">>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "", handler2 |-> ""]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+2: <P0 line 141, col 13 to line 146, col 55 of module carousel>
+/\ unacked = 0
+/\ pc = [handler1 |-> "P0", handler2 |-> "Poll"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{}, {}, {}>>
+/\ queue = <<"first step", "second step">>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "", handler2 |-> ""]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+3: <P0 line 141, col 13 to line 146, col 55 of module carousel>
+/\ unacked = 0
+/\ pc = [handler1 |-> "Poll", handler2 |-> "Poll"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{}, {}, {}>>
+/\ queue = <<"first step", "second step">>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "", handler2 |-> ""]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+4: <Poll line 148, col 15 to line 156, col 71 of module carousel>
+/\ unacked = 1
+/\ pc = [handler1 |-> "Read", handler2 |-> "Poll"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{}, {}, {}>>
+/\ queue = <<"second step">>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> ""]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+5: <Read line 158, col 15 to line 163, col 80 of module carousel>
+/\ unacked = 1
+/\ pc = [handler1 |-> "Write", handler2 |-> "Poll"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{}, {}, {}>>
+/\ queue = <<"second step">>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> ""]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+6: <Write line 165, col 16 to line 178, col 81 of module carousel>
+/\ unacked = 1
+/\ pc = [handler1 |-> "P0_", handler2 |-> "Poll"]
+/\ nodes = [handler1 |-> {1, 2}, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> {1, 2}, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{}, {}, {}>>
+/\ queue = <<"second step">>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> "first step", handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> ""]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [ handler1 |->
+      << [ pc |-> "ReadAfterWrite",
+           nodes |-> defaultInitValue,
+           writeNodes |-> defaultInitValue,
+           status |-> defaultInitValue,
+           procedure |-> "appendProgress" ] >>,
+  handler2 |-> <<>> ]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+7: <P0_ line 117, col 14 to line 128, col 79 of module carousel>
+/\ unacked = 1
+/\ pc = [handler1 |-> "P1", handler2 |-> "Poll"]
+/\ nodes = [handler1 |-> {1, 2}, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> {1, 2}, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{}, {}, {}>>
+/\ queue = <<"second step">>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> "first step", handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> ""]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [ handler1 |->
+      << [ pc |-> "ReadAfterWrite",
+           nodes |-> defaultInitValue,
+           writeNodes |-> defaultInitValue,
+           status |-> defaultInitValue,
+           procedure |-> "appendProgress" ] >>,
+  handler2 |-> <<>> ]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+8: <P1 line 130, col 13 to line 137, col 78 of module carousel>
+/\ unacked = 1
+/\ pc = [handler1 |-> "P0_", handler2 |-> "Poll"]
+/\ nodes = [handler1 |-> {2}, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> {1, 2}, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step"}, {}, {}>>
+/\ queue = <<"second step">>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> "first step", handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> ""]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [ handler1 |->
+      << [ pc |-> "ReadAfterWrite",
+           nodes |-> defaultInitValue,
+           writeNodes |-> defaultInitValue,
+           status |-> defaultInitValue,
+           procedure |-> "appendProgress" ] >>,
+  handler2 |-> <<>> ]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+9: <P0_ line 117, col 14 to line 128, col 79 of module carousel>
+/\ unacked = 1
+/\ pc = [handler1 |-> "P1", handler2 |-> "Poll"]
+/\ nodes = [handler1 |-> {2}, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> {1, 2}, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step"}, {}, {}>>
+/\ queue = <<"second step">>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> "first step", handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> ""]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [ handler1 |->
+      << [ pc |-> "ReadAfterWrite",
+           nodes |-> defaultInitValue,
+           writeNodes |-> defaultInitValue,
+           status |-> defaultInitValue,
+           procedure |-> "appendProgress" ] >>,
+  handler2 |-> <<>> ]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+10: <P1 line 130, col 13 to line 137, col 78 of module carousel>
+/\ unacked = 1
+/\ pc = [handler1 |-> "P0_", handler2 |-> "Poll"]
+/\ nodes = [handler1 |-> {}, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> {1, 2}, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step"}, {"first step"}, {}>>
+/\ queue = <<"second step">>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> "first step", handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> ""]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [ handler1 |->
+      << [ pc |-> "ReadAfterWrite",
+           nodes |-> defaultInitValue,
+           writeNodes |-> defaultInitValue,
+           status |-> defaultInitValue,
+           procedure |-> "appendProgress" ] >>,
+  handler2 |-> <<>> ]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+11: <Poll line 148, col 15 to line 156, col 71 of module carousel>
+/\ unacked = 2
+/\ pc = [handler1 |-> "P0_", handler2 |-> "Read"]
+/\ nodes = [handler1 |-> {}, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> {1, 2}, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step"}, {"first step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> "first step", handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [ handler1 |->
+      << [ pc |-> "ReadAfterWrite",
+           nodes |-> defaultInitValue,
+           writeNodes |-> defaultInitValue,
+           status |-> defaultInitValue,
+           procedure |-> "appendProgress" ] >>,
+  handler2 |-> <<>> ]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+12: <P0_ line 117, col 14 to line 128, col 79 of module carousel>
+/\ unacked = 2
+/\ pc = [handler1 |-> "ReadAfterWrite", handler2 |-> "Read"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step"}, {"first step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+13: <Read line 158, col 15 to line 163, col 80 of module carousel>
+/\ unacked = 2
+/\ pc = [handler1 |-> "ReadAfterWrite", handler2 |-> "Write"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step"}, {"first step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+14: <Write line 165, col 16 to line 178, col 81 of module carousel>
+/\ unacked = 2
+/\ pc = [handler1 |-> "ReadAfterWrite", handler2 |-> "P0_"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> {1, 2}]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> {1, 2}]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step"}, {"first step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> "second step"]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [ handler1 |-> <<>>,
+  handler2 |->
+      << [ pc |-> "ReadAfterWrite",
+           nodes |-> defaultInitValue,
+           writeNodes |-> defaultInitValue,
+           status |-> defaultInitValue,
+           procedure |-> "appendProgress" ] >> ]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+15: <P0_ line 117, col 14 to line 128, col 79 of module carousel>
+/\ unacked = 2
+/\ pc = [handler1 |-> "ReadAfterWrite", handler2 |-> "P1"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> {1, 2}]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> {1, 2}]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step"}, {"first step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> "second step"]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [ handler1 |-> <<>>,
+  handler2 |->
+      << [ pc |-> "ReadAfterWrite",
+           nodes |-> defaultInitValue,
+           writeNodes |-> defaultInitValue,
+           status |-> defaultInitValue,
+           procedure |-> "appendProgress" ] >> ]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+16: <P1 line 130, col 13 to line 137, col 78 of module carousel>
+/\ unacked = 2
+/\ pc = [handler1 |-> "ReadAfterWrite", handler2 |-> "P0_"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> {2}]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> {1, 2}]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step", "second step"}, {"first step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> "second step"]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [ handler1 |-> <<>>,
+  handler2 |->
+      << [ pc |-> "ReadAfterWrite",
+           nodes |-> defaultInitValue,
+           writeNodes |-> defaultInitValue,
+           status |-> defaultInitValue,
+           procedure |-> "appendProgress" ] >> ]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+17: <P0_ line 117, col 14 to line 128, col 79 of module carousel>
+/\ unacked = 2
+/\ pc = [handler1 |-> "ReadAfterWrite", handler2 |-> "P1"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> {2}]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> {1, 2}]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step", "second step"}, {"first step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> "second step"]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [ handler1 |-> <<>>,
+  handler2 |->
+      << [ pc |-> "ReadAfterWrite",
+           nodes |-> defaultInitValue,
+           writeNodes |-> defaultInitValue,
+           status |-> defaultInitValue,
+           procedure |-> "appendProgress" ] >> ]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+18: <P1 line 130, col 13 to line 137, col 78 of module carousel>
+/\ unacked = 2
+/\ pc = [handler1 |-> "ReadAfterWrite", handler2 |-> "P0_"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> {}]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> {1, 2}]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step", "second step"}, {"first step", "second step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> "second step"]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [ handler1 |-> <<>>,
+  handler2 |->
+      << [ pc |-> "ReadAfterWrite",
+           nodes |-> defaultInitValue,
+           writeNodes |-> defaultInitValue,
+           status |-> defaultInitValue,
+           procedure |-> "appendProgress" ] >> ]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+19: <P0_ line 117, col 14 to line 128, col 79 of module carousel>
+/\ unacked = 2
+/\ pc = [handler1 |-> "ReadAfterWrite", handler2 |-> "ReadAfterWrite"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step", "second step"}, {"first step", "second step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 0
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+20: <ReadAfterWrite line 180, col 25 to line 190, col 50 of module carousel>
+/\ unacked = 2
+/\ pc = [handler1 |-> "Ack", handler2 |-> "ReadAfterWrite"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step", "second step"}, {"first step", "second step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 1
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+21: <ReadAfterWrite line 180, col 25 to line 190, col 50 of module carousel>
+/\ unacked = 2
+/\ pc = [handler1 |-> "Ack", handler2 |-> "Ack"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step", "second step"}, {"first step", "second step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 2
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+22: <Ack line 192, col 14 to line 198, col 56 of module carousel>
+/\ unacked = 1
+/\ pc = [handler1 |-> "P0", handler2 |-> "Ack"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step", "second step"}, {"first step", "second step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 2
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+23: <P0 line 141, col 13 to line 146, col 55 of module carousel>
+/\ unacked = 1
+/\ pc = [handler1 |-> "Poll", handler2 |-> "Ack"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step", "second step"}, {"first step", "second step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 2
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+24: <Ack line 192, col 14 to line 198, col 56 of module carousel>
+/\ unacked = 0
+/\ pc = [handler1 |-> "Poll", handler2 |-> "P0"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step", "second step"}, {"first step", "second step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 2
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+25: <P0 line 141, col 13 to line 146, col 55 of module carousel>
+/\ unacked = 0
+/\ pc = [handler1 |-> "Poll", handler2 |-> "Poll"]
+/\ nodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ writeNodes = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ completedBefore = [handler1 |-> FALSE, handler2 |-> FALSE]
+/\ readQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ progress = <<{"first step", "second step"}, {"first step", "second step"}, {}>>
+/\ queue = <<>>
+/\ writeQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ switchHappened = 2
+/\ status = [handler1 |-> defaultInitValue, handler2 |-> defaultInitValue]
+/\ message = [handler1 |-> "first step", handler2 |-> "second step"]
+/\ secondReadQuorumNodes = [handler1 |-> {1, 2}, handler2 |-> {1, 2}]
+/\ stack = [handler1 |-> <<>>, handler2 |-> <<>>]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2201:0 @!@!@
+The coverage statistics at 2018-10-09 10:32:24
+@!@!@ENDMSG 2201 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 119, col 28 to line 119, col 59 of module carousel: 142884
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 120, col 41 to line 120, col 45 of module carousel: 142884
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 120, col 48 to line 120, col 57 of module carousel: 142884
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 120, col 60 to line 120, col 65 of module carousel: 142884
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 120, col 68 to line 120, col 72 of module carousel: 142884
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 121, col 28 to line 121, col 75 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 122, col 28 to line 122, col 84 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 123, col 28 to line 123, col 99 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 124, col 28 to line 124, col 87 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 125, col 28 to line 125, col 78 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 126, col 30 to line 126, col 37 of module carousel: 195372
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 126, col 40 to line 126, col 44 of module carousel: 195372
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 126, col 47 to line 126, col 60 of module carousel: 195372
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 126, col 63 to line 126, col 69 of module carousel: 195372
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 127, col 30 to line 127, col 45 of module carousel: 195372
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 127, col 48 to line 127, col 62 of module carousel: 195372
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 128, col 30 to line 128, col 50 of module carousel: 195372
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 128, col 53 to line 128, col 67 of module carousel: 195372
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 128, col 70 to line 128, col 76 of module carousel: 195372
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 132, col 21 to line 132, col 90 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 133, col 21 to line 133, col 71 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 134, col 16 to line 134, col 48 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 135, col 29 to line 135, col 33 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 135, col 36 to line 135, col 49 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 135, col 52 to line 135, col 58 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 135, col 61 to line 135, col 65 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 135, col 68 to line 135, col 77 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 136, col 29 to line 136, col 34 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 136, col 37 to line 136, col 52 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 136, col 55 to line 136, col 69 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 137, col 29 to line 137, col 49 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 137, col 52 to line 137, col 66 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 137, col 69 to line 137, col 75 of module carousel: 186624
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 142, col 16 to line 142, col 49 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 143, col 29 to line 143, col 36 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 143, col 39 to line 143, col 43 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 143, col 46 to line 143, col 59 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 143, col 62 to line 143, col 68 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 143, col 71 to line 143, col 75 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 144, col 29 to line 144, col 38 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 144, col 41 to line 144, col 46 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 144, col 49 to line 144, col 53 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 144, col 56 to line 144, col 71 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 145, col 29 to line 145, col 43 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 145, col 46 to line 145, col 66 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 146, col 29 to line 146, col 43 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 146, col 46 to line 146, col 52 of module carousel: 106914
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 150, col 18 to line 150, col 66 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 151, col 18 to line 151, col 37 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 152, col 18 to line 152, col 39 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 153, col 18 to line 153, col 51 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 154, col 31 to line 154, col 38 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 154, col 41 to line 154, col 54 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 154, col 57 to line 154, col 61 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 154, col 64 to line 154, col 73 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 155, col 31 to line 155, col 36 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 155, col 39 to line 155, col 43 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 155, col 46 to line 155, col 61 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 155, col 64 to line 155, col 78 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 156, col 31 to line 156, col 51 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 156, col 54 to line 156, col 68 of module carousel: 24786
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 159, col 18 to line 159, col 126 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 160, col 18 to line 160, col 52 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 161, col 31 to line 161, col 38 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 161, col 41 to line 161, col 45 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 161, col 48 to line 161, col 61 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 161, col 64 to line 161, col 70 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 161, col 73 to line 161, col 77 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 162, col 31 to line 162, col 40 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 162, col 43 to line 162, col 48 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 162, col 51 to line 162, col 55 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 162, col 58 to line 162, col 73 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 163, col 31 to line 163, col 45 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 163, col 48 to line 163, col 68 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 163, col 71 to line 163, col 77 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 166, col 22 to line 171, col 70 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 172, col 22 to line 172, col 70 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 173, col 22 to line 173, col 87 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 174, col 19 to line 174, col 69 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 175, col 19 to line 175, col 51 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 176, col 32 to line 176, col 39 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 176, col 42 to line 176, col 46 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 176, col 49 to line 176, col 62 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 176, col 65 to line 176, col 71 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 177, col 32 to line 177, col 47 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 177, col 50 to line 177, col 64 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 178, col 32 to line 178, col 52 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 178, col 55 to line 178, col 69 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 178, col 72 to line 178, col 78 of module carousel: 43740
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 182, col 39 to line 182, col 74 of module carousel: 34020
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 184, col 49 to line 184, col 62 of module carousel: 18468
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 185, col 28 to line 185, col 60 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 186, col 41 to line 186, col 48 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 186, col 51 to line 186, col 55 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 186, col 58 to line 186, col 64 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 186, col 67 to line 186, col 71 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 187, col 41 to line 187, col 50 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 187, col 53 to line 187, col 58 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 187, col 61 to line 187, col 65 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 188, col 41 to line 188, col 56 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 188, col 59 to line 188, col 73 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 189, col 41 to line 189, col 61 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 189, col 64 to line 189, col 78 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 190, col 41 to line 190, col 47 of module carousel: 52488
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 193, col 17 to line 193, col 38 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 194, col 17 to line 194, col 48 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 195, col 30 to line 195, col 37 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 195, col 40 to line 195, col 44 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 195, col 47 to line 195, col 60 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 195, col 63 to line 195, col 67 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 196, col 30 to line 196, col 39 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 196, col 42 to line 196, col 47 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 196, col 50 to line 196, col 54 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 196, col 57 to line 196, col 72 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 197, col 30 to line 197, col 44 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 197, col 47 to line 197, col 67 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 198, col 30 to line 198, col 44 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 198, col 47 to line 198, col 53 of module carousel: 66096
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2202:0 @!@!@
+End of statistics.
+@!@!@ENDMSG 2202 @!@!@
+@!@!@STARTMSG 2200:0 @!@!@
+Progress(25) at 2018-10-09 10:32:24: 720489 states generated (10,256,071 s/min), 379077 distinct states found (5,396,113 ds/min), 4373 states left on queue.
+@!@!@ENDMSG 2200 @!@!@
+@!@!@STARTMSG 2199:0 @!@!@
+720489 states generated, 379077 distinct states found, 4373 states left on queue.
+@!@!@ENDMSG 2199 @!@!@
+@!@!@STARTMSG 2194:0 @!@!@
+The depth of the complete state graph search is 25.
+@!@!@ENDMSG 2194 @!@!@
+@!@!@STARTMSG 2268:0 @!@!@
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 4 and the 95th percentile is 2).
+@!@!@ENDMSG 2268 @!@!@
+@!@!@STARTMSG 2186:0 @!@!@
+Finished in 4609ms at (2018-10-09 10:32:24)
+@!@!@ENDMSG 2186 @!@!@
