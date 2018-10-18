@@ -57,7 +57,7 @@ begin
 end procedure
 
 
-fair process loadChannels \in CHOOSE x \in Nodes: x % 2 = 0
+fair process loadChannels \in CHOOSE x \in Nodes: x \in Nodes
 variables
     counter = 0
 begin P0:
@@ -94,7 +94,7 @@ VARIABLES status, counters, queue, channels, switchHappened, unacked, pc,
 vars == << status, counters, queue, channels, switchHappened, unacked, pc, 
            stack, node_, incoming_, node, incoming, counter, message >>
 
-ProcSet == (CHOOSE x \in Nodes: x % 2 = 0) \cup (Nodes)
+ProcSet == (CHOOSE x \in Nodes: x \in Nodes) \cup (Nodes)
 
 Init == (* Global variables *)
         /\ status = [n \in Nodes |-> "Initiated"]
@@ -110,11 +110,11 @@ Init == (* Global variables *)
         /\ node = [ self \in ProcSet |-> defaultInitValue]
         /\ incoming = [ self \in ProcSet |-> ""]
         (* Process loadChannels *)
-        /\ counter = [self \in CHOOSE x \in Nodes: x % 2 = 0 |-> 0]
+        /\ counter = [self \in CHOOSE x \in Nodes: x \in Nodes |-> 0]
         (* Process nodeHandler *)
         /\ message = [self \in Nodes |-> ""]
         /\ stack = [self \in ProcSet |-> << >>]
-        /\ pc = [self \in ProcSet |-> CASE self \in CHOOSE x \in Nodes: x % 2 = 0 -> "P0_"
+        /\ pc = [self \in ProcSet |-> CASE self \in CHOOSE x \in Nodes: x \in Nodes -> "P0_"
                                         [] self \in Nodes -> "P0"]
 
 P1_(self) == /\ pc[self] = "P1_"
@@ -175,13 +175,13 @@ Write(self) == /\ pc[self] = "Write"
 nodeHandler(self) == P0(self) \/ Write(self)
 
 Next == (\E self \in ProcSet: updateStatus(self) \/ updateCounter(self))
-           \/ (\E self \in CHOOSE x \in Nodes: x % 2 = 0: loadChannels(self))
+           \/ (\E self \in CHOOSE x \in Nodes: x \in Nodes: loadChannels(self))
            \/ (\E self \in Nodes: nodeHandler(self))
            \/ (* Disjunct to prevent deadlock on termination *)
               ((\A self \in ProcSet: pc[self] = "Done") /\ UNCHANGED vars)
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in CHOOSE x \in Nodes: x % 2 = 0 : WF_vars(loadChannels(self))
+        /\ \A self \in CHOOSE x \in Nodes: x \in Nodes : WF_vars(loadChannels(self))
         /\ \A self \in Nodes : WF_vars(nodeHandler(self)) /\ WF_vars(updateStatus(self))
 
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")

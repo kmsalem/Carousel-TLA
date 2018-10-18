@@ -53,16 +53,15 @@ variable
 begin
   P1:
     recv(channels[node], incoming);
-    status[node] := incoming;
+    counters[node] := incoming;
 end procedure
 
 
-fair process loadChannels \in CHOOSE x \in Nodes: x % 2 = 0
-variables
-    counter = 0
+fair process loadChannels \in Nodes
+variable
+    counter = 0;
 begin P0:
     while counter < NumOfMessages do
-        \* TODO: add choose
         send(channels[self], "Committed");
         counter := counter + 1;
 \*        send(channels[self], counter);
@@ -82,6 +81,9 @@ begin P0:
 end process;
 
 end algorithm *)
+
+
+
 \* BEGIN TRANSLATION
 \* Label P1 of procedure updateStatus at line 29 col 3 changed to P1_
 \* Label P0 of process loadChannels at line 64 col 5 changed to P0_
@@ -94,7 +96,7 @@ VARIABLES status, counters, queue, channels, switchHappened, unacked, pc,
 vars == << status, counters, queue, channels, switchHappened, unacked, pc, 
            stack, node_, incoming_, node, incoming, counter, message >>
 
-ProcSet == (CHOOSE x \in Nodes: x % 2 = 0) \cup (Nodes)
+ProcSet == (Nodes) \cup (Nodes)
 
 Init == (* Global variables *)
         /\ status = [n \in Nodes |-> "Initiated"]
@@ -110,11 +112,11 @@ Init == (* Global variables *)
         /\ node = [ self \in ProcSet |-> defaultInitValue]
         /\ incoming = [ self \in ProcSet |-> ""]
         (* Process loadChannels *)
-        /\ counter = [self \in CHOOSE x \in Nodes: x % 2 = 0 |-> 0]
+        /\ counter = [self \in Nodes |-> 0]
         (* Process nodeHandler *)
         /\ message = [self \in Nodes |-> ""]
         /\ stack = [self \in ProcSet |-> << >>]
-        /\ pc = [self \in ProcSet |-> CASE self \in CHOOSE x \in Nodes: x % 2 = 0 -> "P0_"
+        /\ pc = [self \in ProcSet |-> CASE self \in Nodes -> "P0_"
                                         [] self \in Nodes -> "P0"]
 
 P1_(self) == /\ pc[self] = "P1_"
@@ -132,9 +134,9 @@ P1(self) == /\ pc[self] = "P1"
             /\ (channels[node[self]]) /= <<>>
             /\ incoming' = [incoming EXCEPT ![self] = Head((channels[node[self]]))]
             /\ channels' = [channels EXCEPT ![node[self]] = Tail((channels[node[self]]))]
-            /\ status' = [status EXCEPT ![node[self]] = incoming'[self]]
+            /\ counters' = [counters EXCEPT ![node[self]] = incoming'[self]]
             /\ pc' = [pc EXCEPT ![self] = "Error"]
-            /\ UNCHANGED << counters, queue, switchHappened, unacked, stack, 
+            /\ UNCHANGED << status, queue, switchHappened, unacked, stack, 
                             node_, incoming_, node, counter, message >>
 
 updateCounter(self) == P1(self)
@@ -175,26 +177,22 @@ Write(self) == /\ pc[self] = "Write"
 nodeHandler(self) == P0(self) \/ Write(self)
 
 Next == (\E self \in ProcSet: updateStatus(self) \/ updateCounter(self))
-           \/ (\E self \in CHOOSE x \in Nodes: x % 2 = 0: loadChannels(self))
+           \/ (\E self \in Nodes: loadChannels(self))
            \/ (\E self \in Nodes: nodeHandler(self))
            \/ (* Disjunct to prevent deadlock on termination *)
               ((\A self \in ProcSet: pc[self] = "Done") /\ UNCHANGED vars)
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in CHOOSE x \in Nodes: x % 2 = 0 : WF_vars(loadChannels(self))
+        /\ \A self \in Nodes : WF_vars(loadChannels(self))
         /\ \A self \in Nodes : WF_vars(nodeHandler(self)) /\ WF_vars(updateStatus(self))
 
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 \* END TRANSLATION
 
-
 \* Invariants
 StatusInvariant == \A x \in 1..N:
-                status[x] = "Committed" \/ status[x] = "Initiated"
-                
-CounterInvariant == \A x \in 1..N:
-                counters[x] >= 0 /\ counters[x] <= NumOfMessages
+                status[x] = "Committed" \/ status[x] = "Initiateda"
                 
 \* Correctness
 CounterCorrectness == <>(Termination /\ (\A x \in 1..N: counters[x] = NumOfMessages))
