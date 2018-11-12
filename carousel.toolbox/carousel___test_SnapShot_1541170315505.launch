@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="org.lamport.tla.toolbox.tool.tlc.modelCheck">
     <stringAttribute key="TLCCmdLineParameters" value=""/>
-    <stringAttribute key="configurationName" value="Model_2_SnapShot_1540923808448"/>
+    <stringAttribute key="configurationName" value="test_SnapShot_1541170315505"/>
     <booleanAttribute key="deferLiveness" value="false"/>
     <intAttribute key="dfidDepth" value="100"/>
     <booleanAttribute key="dfidMode" value="false"/>
     <intAttribute key="distributedFPSetCount" value="0"/>
-    <stringAttribute key="distributedNetworkInterface" value="192.168.2.18"/>
+    <stringAttribute key="distributedNetworkInterface" value="10.20.189.96"/>
     <intAttribute key="distributedNodesCount" value="1"/>
     <stringAttribute key="distributedTLC" value="off"/>
     <stringAttribute key="distributedTLCVMArgs" value=""/>
@@ -22,9 +22,12 @@
     <stringAttribute key="modelBehaviorVars" value="node, unacked, channels, node_, subsets, counter, pc, chosen_, incoming_s, incoming_u, queue, received, node_u, sent, incoming, chosen, switchHappened, status, incoming_, message, stack"/>
     <stringAttribute key="modelComments" value=""/>
     <booleanAttribute key="modelCorrectnessCheckDeadlock" value="true"/>
-    <listAttribute key="modelCorrectnessInvariants"/>
+    <listAttribute key="modelCorrectnessInvariants">
+        <listEntry value="1StatusInvariant"/>
+    </listAttribute>
     <listAttribute key="modelCorrectnessProperties">
         <listEntry value="0Termination"/>
+        <listEntry value="1CounterCorrectness"/>
     </listAttribute>
     <stringAttribute key="modelExpressionEval" value=""/>
     <stringAttribute key="modelParameterActionConstraint" value=""/>

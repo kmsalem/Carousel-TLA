@@ -28,7 +28,6 @@ variable
   \* The number of unacknowledged messages
   unacked = 0;
 
-
 \* Queue macros
 macro recv(queue, receiver)
 begin
@@ -50,6 +49,7 @@ variable
 begin
   P1:
     recv(channels[node], incoming);
+    print<<"hey", incoming>>;
   IncrementReceived:
     received[node] := received[node] + 1;
   Update:
@@ -76,7 +76,6 @@ begin
             or send(channels[node], "Aborted")
             or send(channels[node], "Prepared")
         end either;
-    IncrementSent:
         sent[node] := sent[node] + 1;
     IncrementCounter:
         counter := counter + 1;
@@ -103,11 +102,10 @@ variables
     subsets = SUBSET Nodes,
     chosen = {};
 begin
-    ChooseSubset:
-        chosen := CHOOSE x \in subsets: TRUE;
     P0: 
-\*        call sendMessages(rand);
-        call sendMessagesToSubset(chosen);
+        with chonsen \in subsets do
+            call sendMessagesToSubset(chosen);
+        end with;
 end process;
 
 
@@ -115,6 +113,8 @@ fair process nodeHandler \in Nodes
 variable
   message = "";
 begin P0:
+  print self;
+  test:
   while channels[self] # <<>> do
   Write:
     call updateStatus(self);
@@ -124,15 +124,15 @@ end process;
 
 end algorithm *)
 \* BEGIN TRANSLATION
-\* Label P1 of procedure updateStatus at line 35 col 3 changed to P1_
+\* Label P1 of procedure updateStatus at line 34 col 3 changed to P1_
 \* Label P0 of procedure sendMessages at line 73 col 5 changed to P0_
-\* Label P0 of procedure sendMessagesToSubset at line 91 col 5 changed to P0_s
-\* Label P0 of process loadChannels at line 110 col 9 changed to P0_l
-\* Process variable chosen of process loadChannels at line 104 col 5 changed to chosen_
-\* Procedure variable incoming of procedure updateStatus at line 49 col 5 changed to incoming_
+\* Label P0 of procedure sendMessagesToSubset at line 90 col 5 changed to P0_s
+\* Label P0 of process loadChannels at line 106 col 9 changed to P0_l
+\* Process variable chosen of process loadChannels at line 103 col 5 changed to chosen_
+\* Procedure variable incoming of procedure updateStatus at line 48 col 5 changed to incoming_
 \* Procedure variable incoming of procedure updateCounter at line 61 col 5 changed to incoming_u
 \* Procedure variable incoming of procedure sendMessages at line 70 col 5 changed to incoming_s
-\* Parameter node of procedure updateStatus at line 47 col 24 changed to node_
+\* Parameter node of procedure updateStatus at line 46 col 24 changed to node_
 \* Parameter node of procedure updateCounter at line 59 col 25 changed to node_u
 CONSTANT defaultInitValue
 VARIABLES status, sent, received, queue, channels, switchHappened, unacked, 
@@ -172,13 +172,14 @@ Init == (* Global variables *)
         (* Process nodeHandler *)
         /\ message = [self \in Nodes |-> ""]
         /\ stack = [self \in ProcSet |-> << >>]
-        /\ pc = [self \in ProcSet |-> CASE self \in Clients -> "ChooseSubset"
+        /\ pc = [self \in ProcSet |-> CASE self \in Clients -> "P0_l"
                                         [] self \in Nodes -> "P0"]
 
 P1_(self) == /\ pc[self] = "P1_"
              /\ (channels[node_[self]]) /= <<>>
              /\ incoming_' = [incoming_ EXCEPT ![self] = Head((channels[node_[self]]))]
              /\ channels' = [channels EXCEPT ![node_[self]] = Tail((channels[node_[self]]))]
+             /\ PrintT(<<"hey", incoming_'[self]>>)
              /\ pc' = [pc EXCEPT ![self] = "IncrementReceived"]
              /\ UNCHANGED << status, sent, received, queue, switchHappened, 
                              unacked, stack, node_, node_u, incoming_u, node, 
@@ -232,20 +233,12 @@ Send(self) == /\ pc[self] = "Send"
               /\ \/ /\ channels' = [channels EXCEPT ![node[self]] = Append((channels[node[self]]), "Committed")]
                  \/ /\ channels' = [channels EXCEPT ![node[self]] = Append((channels[node[self]]), "Aborted")]
                  \/ /\ channels' = [channels EXCEPT ![node[self]] = Append((channels[node[self]]), "Prepared")]
-              /\ pc' = [pc EXCEPT ![self] = "IncrementSent"]
-              /\ UNCHANGED << status, sent, received, queue, switchHappened, 
-                              unacked, stack, node_, incoming_, node_u, 
-                              incoming_u, node, incoming_s, chosen, incoming, 
-                              counter, subsets, chosen_, message >>
-
-IncrementSent(self) == /\ pc[self] = "IncrementSent"
-                       /\ sent' = [sent EXCEPT ![node[self]] = sent[node[self]] + 1]
-                       /\ pc' = [pc EXCEPT ![self] = "IncrementCounter"]
-                       /\ UNCHANGED << status, received, queue, channels, 
-                                       switchHappened, unacked, stack, node_, 
-                                       incoming_, node_u, incoming_u, node, 
-                                       incoming_s, chosen, incoming, counter, 
-                                       subsets, chosen_, message >>
+              /\ sent' = [sent EXCEPT ![node[self]] = sent[node[self]] + 1]
+              /\ pc' = [pc EXCEPT ![self] = "IncrementCounter"]
+              /\ UNCHANGED << status, received, queue, switchHappened, unacked, 
+                              stack, node_, incoming_, node_u, incoming_u, 
+                              node, incoming_s, chosen, incoming, counter, 
+                              subsets, chosen_, message >>
 
 IncrementCounter(self) == /\ pc[self] = "IncrementCounter"
                           /\ counter' = [counter EXCEPT ![self] = counter[self] + 1]
@@ -256,8 +249,7 @@ IncrementCounter(self) == /\ pc[self] = "IncrementCounter"
                                           incoming_u, node, incoming_s, chosen, 
                                           incoming, subsets, chosen_, message >>
 
-sendMessages(self) == P0_(self) \/ Send(self) \/ IncrementSent(self)
-                         \/ IncrementCounter(self)
+sendMessages(self) == P0_(self) \/ Send(self) \/ IncrementCounter(self)
 
 P0_s(self) == /\ pc[self] = "P0_s"
               /\ IF chosen[self] # {}
@@ -280,44 +272,44 @@ P0_s(self) == /\ pc[self] = "P0_s"
 
 sendMessagesToSubset(self) == P0_s(self)
 
-ChooseSubset(self) == /\ pc[self] = "ChooseSubset"
-                      /\ chosen_' = [chosen_ EXCEPT ![self] = CHOOSE x \in subsets[self]: TRUE]
-                      /\ pc' = [pc EXCEPT ![self] = "P0_l"]
-                      /\ UNCHANGED << status, sent, received, queue, channels, 
-                                      switchHappened, unacked, stack, node_, 
-                                      incoming_, node_u, incoming_u, node, 
-                                      incoming_s, chosen, incoming, counter, 
-                                      subsets, message >>
-
 P0_l(self) == /\ pc[self] = "P0_l"
-              /\ /\ chosen' = [chosen EXCEPT ![self] = chosen_[self]]
-                 /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "sendMessagesToSubset",
-                                                          pc        |->  "Done",
-                                                          incoming  |->  incoming[self],
-                                                          chosen    |->  chosen[self] ] >>
-                                                      \o stack[self]]
-              /\ incoming' = [incoming EXCEPT ![self] = ""]
-              /\ pc' = [pc EXCEPT ![self] = "P0_s"]
+              /\ \E chonsen \in subsets[self]:
+                   /\ /\ chosen' = [chosen EXCEPT ![self] = chosen_[self]]
+                      /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "sendMessagesToSubset",
+                                                               pc        |->  "Done",
+                                                               incoming  |->  incoming[self],
+                                                               chosen    |->  chosen[self] ] >>
+                                                           \o stack[self]]
+                   /\ incoming' = [incoming EXCEPT ![self] = ""]
+                   /\ pc' = [pc EXCEPT ![self] = "P0_s"]
               /\ UNCHANGED << status, sent, received, queue, channels, 
                               switchHappened, unacked, node_, incoming_, 
                               node_u, incoming_u, node, incoming_s, counter, 
                               subsets, chosen_, message >>
 
-loadChannels(self) == ChooseSubset(self) \/ P0_l(self)
+loadChannels(self) == P0_l(self)
 
 P0(self) == /\ pc[self] = "P0"
-            /\ IF channels[self] # <<>>
-                  THEN /\ pc' = [pc EXCEPT ![self] = "Write"]
-                  ELSE /\ pc' = [pc EXCEPT ![self] = "Done"]
+            /\ PrintT(self)
+            /\ pc' = [pc EXCEPT ![self] = "test"]
             /\ UNCHANGED << status, sent, received, queue, channels, 
                             switchHappened, unacked, stack, node_, incoming_, 
                             node_u, incoming_u, node, incoming_s, chosen, 
                             incoming, counter, subsets, chosen_, message >>
 
+test(self) == /\ pc[self] = "test"
+              /\ IF channels[self] # <<>>
+                    THEN /\ pc' = [pc EXCEPT ![self] = "Write"]
+                    ELSE /\ pc' = [pc EXCEPT ![self] = "Done"]
+              /\ UNCHANGED << status, sent, received, queue, channels, 
+                              switchHappened, unacked, stack, node_, incoming_, 
+                              node_u, incoming_u, node, incoming_s, chosen, 
+                              incoming, counter, subsets, chosen_, message >>
+
 Write(self) == /\ pc[self] = "Write"
                /\ /\ node_' = [node_ EXCEPT ![self] = self]
                   /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "updateStatus",
-                                                           pc        |->  "P0",
+                                                           pc        |->  "test",
                                                            incoming_ |->  incoming_[self],
                                                            node_     |->  node_[self] ] >>
                                                        \o stack[self]]
@@ -328,7 +320,7 @@ Write(self) == /\ pc[self] = "Write"
                                node, incoming_s, chosen, incoming, counter, 
                                subsets, chosen_, message >>
 
-nodeHandler(self) == P0(self) \/ Write(self)
+nodeHandler(self) == P0(self) \/ test(self) \/ Write(self)
 
 Next == (\E self \in ProcSet:  \/ updateStatus(self) \/ updateCounter(self)
                                \/ sendMessages(self)
@@ -351,10 +343,10 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 \* Invariants
 StatusInvariant == \A x \in 1..N:
-                status[x] = "Committed" \/ status[x] = "Aborted" \/ status[x] = "Prepared"
+                status[x] = "Committed" \/ status[x] = "Aborted" \/ status[x] = "Prepared" \/ status[x] = "Initiated"
                 
 SentReceivedInvariant == \A x \in 1..N:
-                sent[x] <= NumOfMessages /\ received[x] <= NumOfMessages /\ sent[x] = received[x]
+                sent[x] <= NumOfMessages /\ received[x] <= NumOfMessages /\ sent[x] < received[x]
                 
 \* Correctness
 CounterCorrectness == <>(Termination /\ (\A x \in 1..N: sent[x] = NumOfMessages /\ received[x] = NumOfMessages))
