@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.lamport.tla.toolbox.tool.tlc.modelCheck">
+    <stringAttribute key="configurationName" value="Model_4"/>
+    <stringAttribute key="modelBehaviorSpec" value="Spec"/>
+    <intAttribute key="modelBehaviorSpecType" value="1"/>
+    <listAttribute key="modelCorrectnessProperties">
+        <listEntry value="0Termination"/>
+    </listAttribute>
+    <listAttribute key="modelParameterConstants">
+        <listEntry value="defaultInitValue;;defaultInitValue;0;0"/>
+        <listEntry value="NumOfMessages;;;0;0"/>
+        <listEntry value="C;;;0;0"/>
+        <listEntry value="N;;;0;0"/>
+        <listEntry value="T;;;0;0"/>
+    </listAttribute>
+    <stringAttribute key="specName" value="carousel"/>
+</launchConfiguration>
