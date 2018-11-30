@@ -19,9 +19,9 @@
     <stringAttribute key="modelBehaviorNext" value=""/>
     <stringAttribute key="modelBehaviorSpec" value="Spec"/>
     <intAttribute key="modelBehaviorSpecType" value="1"/>
-    <stringAttribute key="modelBehaviorVars" value="toSend, serverStatus, msg, tmp, channels, msg_c, msg_s, subsets, counter, pc, msg_, IDSet, msg_cr, received, sent, incoming, id, client_, serverSet, client, status, stack, head"/>
+    <stringAttribute key="modelBehaviorVars" value="node, serverStatus, msg, tmp, channels, incomingMsg, msg_s, subsets, pc, msgId, clientId, msg_, serverStatus_, inMsg, inChannels, IDSet, server, received, sent, client_, serverSet, client, serverMsg, status, message, stack, head"/>
     <stringAttribute key="modelComments" value=""/>
-    <booleanAttribute key="modelCorrectnessCheckDeadlock" value="true"/>
+    <booleanAttribute key="modelCorrectnessCheckDeadlock" value="false"/>
     <listAttribute key="modelCorrectnessInvariants"/>
     <listAttribute key="modelCorrectnessProperties">
         <listEntry value="0Termination"/>
