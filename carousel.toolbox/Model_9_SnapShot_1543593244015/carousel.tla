@@ -4,6 +4,9 @@
 (* This is a TLA+ specification of the Carousel protocol.                  *)
 (***************************************************************************)
 
+\* Overview
+\* There are 3 concurrent processes in this spec.
+
 EXTENDS Naturals, FiniteSets, Sequences, TLC
 CONSTANT C, N
 
@@ -22,6 +25,7 @@ variable
   received = [n \in Nodes |-> 0],
   channels = [n \in Nodes |-> <<>>],
   inChannels = [c \in Clients |-> <<>>],
+  expectedResponses = [c \in Clients |-> 0],
 
 \* Queue macros
 macro recv(queue, receiver)
@@ -41,7 +45,7 @@ procedure sendClientMessage(id, client, server)
 variable
     msg;
 begin
-  P1:
+  SendClientMessage:
     msg := [id |-> id, client |-> client];
     send(channels[server], msg);
     sent[server] := sent[server] + 1;
@@ -56,7 +60,7 @@ variable
     clientId,
     serverStatus;
 begin
-  P1:
+  UpdateStatus:
     recv(channels[node], incomingMsg);
     msgId := incomingMsg.id;
     clientId := incomingMsg.client;
@@ -86,14 +90,17 @@ begin
     await IDSet /= <<>>;  \* First check if IDSet is empty, if not, wait
     id := Head(IDSet);
     IDSet := Tail(IDSet);
+    
+    \* Set the number of client's expected responses
+    expectedResponses[client] := Cardinality(serverSet);
   SendMessages:
-\*    while serverSet /= {} do
+    while serverSet /= {} do
         with selectedServer \in serverSet do
             \*  Remove selected from serverSet
-\*            serverSet := serverSet \ {selectedServer};
+            serverSet := serverSet \ {selectedServer};
             call sendClientMessage(id, client, selectedServer);
         end with;
-\*    end while;
+    end while;
 end procedure
 
 
@@ -104,11 +111,11 @@ variables
     subsets = SUBSET Nodes \ {{}};
 begin
     sendClientMessages:
-\*      while TRUE do
-        with chosen \in subsets do
-            call sendClientMessagesToServers(self, chosen);
+      while TRUE do
+        with chosenSet \in subsets do
+            call sendClientMessagesToServers(self, chosenSet);
         end with;
-\*      end while;
+      end while;
 end process;
 
 
@@ -134,8 +141,12 @@ begin
       await inChannels[self] /= <<>>;
       recv(inChannels[self], inMsg);
       
-\*      Recycle ID
-      IDSet := Append(IDSet, inMsg.id);
+      \* Recycle ID if all expected responses received
+      expectedResponses[client] := expectedResponses[client] - 1;
+      if expectedResponses[client] = 0 then
+        IDSet := Append(IDSet, inMsg.id);
+      end if;
+      
       serverStatus := inMsg.serverStatus;
 \*      Assert serverStatus = status[server];
     end while;
@@ -143,24 +154,24 @@ end process;
 
 end algorithm *)
 \* BEGIN TRANSLATION
-\* Label P1 of procedure sendClientMessage at line 45 col 5 changed to P1_
-\* Label sendClientMessages of process sendClientMessages at line 108 col 9 changed to sendClientMessages_
-\* Label nodeHandler of process nodeHandler at line 120 col 5 changed to nodeHandler_
-\* Label clientHandler of process clientHandler at line 133 col 5 changed to clientHandler_
-\* Process variable msg of process sendClientMessages at line 102 col 5 changed to msg_
-\* Process variable serverStatus of process clientHandler at line 130 col 3 changed to serverStatus_
-\* Procedure variable id of procedure sendClientMessagesToServers at line 82 col 5 changed to id_
-\* Parameter client of procedure sendClientMessage at line 40 col 33 changed to client_
+\* Label sendClientMessages of process sendClientMessages at line 114 col 7 changed to sendClientMessages_
+\* Label nodeHandler of process nodeHandler at line 127 col 5 changed to nodeHandler_
+\* Label clientHandler of process clientHandler at line 140 col 5 changed to clientHandler_
+\* Process variable msg of process sendClientMessages at line 109 col 5 changed to msg_
+\* Process variable serverStatus of process clientHandler at line 137 col 3 changed to serverStatus_
+\* Procedure variable id of procedure sendClientMessagesToServers at line 86 col 5 changed to id_
+\* Parameter client of procedure sendClientMessage at line 44 col 33 changed to client_
 CONSTANT defaultInitValue
-VARIABLES IDSet, status, sent, received, channels, inChannels, pc, stack, id, 
-          client_, server, msg, node, serverMsg, incomingMsg, msgId, clientId, 
-          serverStatus, client, serverSet, id_, msg_, head, subsets, message, 
-          inMsg, serverStatus_
+VARIABLES IDSet, status, sent, received, channels, inChannels, 
+          expectedResponses, pc, stack, id, client_, server, msg, node, 
+          serverMsg, incomingMsg, msgId, clientId, serverStatus, client, 
+          serverSet, id_, msg_, head, subsets, message, inMsg, serverStatus_
 
-vars == << IDSet, status, sent, received, channels, inChannels, pc, stack, id, 
-           client_, server, msg, node, serverMsg, incomingMsg, msgId, 
-           clientId, serverStatus, client, serverSet, id_, msg_, head, 
-           subsets, message, inMsg, serverStatus_ >>
+vars == << IDSet, status, sent, received, channels, inChannels, 
+           expectedResponses, pc, stack, id, client_, server, msg, node, 
+           serverMsg, incomingMsg, msgId, clientId, serverStatus, client, 
+           serverSet, id_, msg_, head, subsets, message, inMsg, serverStatus_
+        >>
 
 ProcSet == (Clients) \cup (Nodes) \cup (Clients)
 
@@ -171,6 +182,7 @@ Init == (* Global variables *)
         /\ received = [n \in Nodes |-> 0]
         /\ channels = [n \in Nodes |-> <<>>]
         /\ inChannels = [c \in Clients |-> <<>>]
+        /\ expectedResponses = [c \in Clients |-> 0]
         (* Procedure sendClientMessage *)
         /\ id = [ self \in ProcSet |-> defaultInitValue]
         /\ client_ = [ self \in ProcSet |-> defaultInitValue]
@@ -201,42 +213,46 @@ Init == (* Global variables *)
                                         [] self \in Nodes -> "nodeHandler_"
                                         [] self \in Clients -> "clientHandler_"]
 
-P1_(self) == /\ pc[self] = "P1_"
-             /\ msg' = [msg EXCEPT ![self] = [id |-> id[self], client |-> client_[self]]]
-             /\ channels' = [channels EXCEPT ![server[self]] = Append((channels[server[self]]), msg'[self])]
-             /\ sent' = [sent EXCEPT ![server[self]] = sent[server[self]] + 1]
-             /\ pc' = [pc EXCEPT ![self] = "Error"]
-             /\ UNCHANGED << IDSet, status, received, inChannels, stack, id, 
-                             client_, server, node, serverMsg, incomingMsg, 
-                             msgId, clientId, serverStatus, client, serverSet, 
-                             id_, msg_, head, subsets, message, inMsg, 
-                             serverStatus_ >>
+SendClientMessage(self) == /\ pc[self] = "SendClientMessage"
+                           /\ msg' = [msg EXCEPT ![self] = [id |-> id[self], client |-> client_[self]]]
+                           /\ channels' = [channels EXCEPT ![server[self]] = Append((channels[server[self]]), msg'[self])]
+                           /\ sent' = [sent EXCEPT ![server[self]] = sent[server[self]] + 1]
+                           /\ pc' = [pc EXCEPT ![self] = "Error"]
+                           /\ UNCHANGED << IDSet, status, received, inChannels, 
+                                           expectedResponses, stack, id, 
+                                           client_, server, node, serverMsg, 
+                                           incomingMsg, msgId, clientId, 
+                                           serverStatus, client, serverSet, 
+                                           id_, msg_, head, subsets, message, 
+                                           inMsg, serverStatus_ >>
 
-sendClientMessage(self) == P1_(self)
+sendClientMessage(self) == SendClientMessage(self)
 
-P1(self) == /\ pc[self] = "P1"
-            /\ incomingMsg' = [incomingMsg EXCEPT ![self] = Head((channels[node[self]]))]
-            /\ channels' = [channels EXCEPT ![node[self]] = Tail((channels[node[self]]))]
-            /\ msgId' = [msgId EXCEPT ![self] = incomingMsg'[self].id]
-            /\ clientId' = [clientId EXCEPT ![self] = incomingMsg'[self].client]
-            /\ \/ /\ serverStatus' = [serverStatus EXCEPT ![self] = "Committed"]
-                  /\ received' = [received EXCEPT ![node[self]] = received[node[self]] + 1]
-                  /\ status' = [status EXCEPT ![node[self]] = serverStatus'[self]]
-               \/ /\ serverStatus' = [serverStatus EXCEPT ![self] = "Aborted"]
-                  /\ UNCHANGED <<status, received>>
-            /\ serverMsg' = [serverMsg EXCEPT ![self] = [id |-> msgId'[self], serverStatus |-> serverStatus'[self]]]
-            /\ inChannels' = [inChannels EXCEPT ![clientId'[self]] = Append((inChannels[clientId'[self]]), serverMsg'[self])]
-            /\ pc' = [pc EXCEPT ![self] = "Error"]
-            /\ UNCHANGED << IDSet, sent, stack, id, client_, server, msg, node, 
-                            client, serverSet, id_, msg_, head, subsets, 
-                            message, inMsg, serverStatus_ >>
+UpdateStatus(self) == /\ pc[self] = "UpdateStatus"
+                      /\ incomingMsg' = [incomingMsg EXCEPT ![self] = Head((channels[node[self]]))]
+                      /\ channels' = [channels EXCEPT ![node[self]] = Tail((channels[node[self]]))]
+                      /\ msgId' = [msgId EXCEPT ![self] = incomingMsg'[self].id]
+                      /\ clientId' = [clientId EXCEPT ![self] = incomingMsg'[self].client]
+                      /\ \/ /\ serverStatus' = [serverStatus EXCEPT ![self] = "Committed"]
+                            /\ received' = [received EXCEPT ![node[self]] = received[node[self]] + 1]
+                            /\ status' = [status EXCEPT ![node[self]] = serverStatus'[self]]
+                         \/ /\ serverStatus' = [serverStatus EXCEPT ![self] = "Aborted"]
+                            /\ UNCHANGED <<status, received>>
+                      /\ serverMsg' = [serverMsg EXCEPT ![self] = [id |-> msgId'[self], serverStatus |-> serverStatus'[self]]]
+                      /\ inChannels' = [inChannels EXCEPT ![clientId'[self]] = Append((inChannels[clientId'[self]]), serverMsg'[self])]
+                      /\ pc' = [pc EXCEPT ![self] = "Error"]
+                      /\ UNCHANGED << IDSet, sent, expectedResponses, stack, 
+                                      id, client_, server, msg, node, client, 
+                                      serverSet, id_, msg_, head, subsets, 
+                                      message, inMsg, serverStatus_ >>
 
-updateStatus(self) == P1(self)
+updateStatus(self) == UpdateStatus(self)
 
 GetID(self) == /\ pc[self] = "GetID"
                /\ IDSet /= <<>>
                /\ id_' = [id_ EXCEPT ![self] = Head(IDSet)]
                /\ IDSet' = Tail(IDSet)
+               /\ expectedResponses' = [expectedResponses EXCEPT ![client[self]] = Cardinality(serverSet[self])]
                /\ pc' = [pc EXCEPT ![self] = "SendMessages"]
                /\ UNCHANGED << status, sent, received, channels, inChannels, 
                                stack, id, client_, server, msg, node, 
@@ -246,6 +262,7 @@ GetID(self) == /\ pc[self] = "GetID"
 
 SendMessages(self) == /\ pc[self] = "SendMessages"
                       /\ \E selectedServer \in serverSet[self]:
+                           /\ serverSet' = [serverSet EXCEPT ![self] = serverSet[self] \ {selectedServer}]
                            /\ /\ client_' = [client_ EXCEPT ![self] = client[self]]
                               /\ id' = [id EXCEPT ![self] = id_[self]]
                               /\ server' = [server EXCEPT ![self] = selectedServer]
@@ -257,21 +274,21 @@ SendMessages(self) == /\ pc[self] = "SendMessages"
                                                                        server    |->  server[self] ] >>
                                                                    \o stack[self]]
                            /\ msg' = [msg EXCEPT ![self] = defaultInitValue]
-                           /\ pc' = [pc EXCEPT ![self] = "P1_"]
+                           /\ pc' = [pc EXCEPT ![self] = "SendClientMessage"]
                       /\ UNCHANGED << IDSet, status, sent, received, channels, 
-                                      inChannels, node, serverMsg, incomingMsg, 
-                                      msgId, clientId, serverStatus, client, 
-                                      serverSet, id_, msg_, head, subsets, 
-                                      message, inMsg, serverStatus_ >>
+                                      inChannels, expectedResponses, node, 
+                                      serverMsg, incomingMsg, msgId, clientId, 
+                                      serverStatus, client, id_, msg_, head, 
+                                      subsets, message, inMsg, serverStatus_ >>
 
 sendClientMessagesToServers(self) == GetID(self) \/ SendMessages(self)
 
 sendClientMessages_(self) == /\ pc[self] = "sendClientMessages_"
-                             /\ \E chosen \in subsets[self]:
+                             /\ \E chosenSet \in subsets[self]:
                                   /\ /\ client' = [client EXCEPT ![self] = self]
-                                     /\ serverSet' = [serverSet EXCEPT ![self] = chosen]
+                                     /\ serverSet' = [serverSet EXCEPT ![self] = chosenSet]
                                      /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "sendClientMessagesToServers",
-                                                                              pc        |->  "Done",
+                                                                              pc        |->  "sendClientMessages_",
                                                                               id_       |->  id_[self],
                                                                               client    |->  client[self],
                                                                               serverSet |->  serverSet[self] ] >>
@@ -279,7 +296,8 @@ sendClientMessages_(self) == /\ pc[self] = "sendClientMessages_"
                                   /\ id_' = [id_ EXCEPT ![self] = defaultInitValue]
                                   /\ pc' = [pc EXCEPT ![self] = "GetID"]
                              /\ UNCHANGED << IDSet, status, sent, received, 
-                                             channels, inChannels, id, client_, 
+                                             channels, inChannels, 
+                                             expectedResponses, id, client_, 
                                              server, msg, node, serverMsg, 
                                              incomingMsg, msgId, clientId, 
                                              serverStatus, msg_, head, subsets, 
@@ -304,11 +322,12 @@ nodeHandler_(self) == /\ pc[self] = "nodeHandler_"
                       /\ msgId' = [msgId EXCEPT ![self] = defaultInitValue]
                       /\ clientId' = [clientId EXCEPT ![self] = defaultInitValue]
                       /\ serverStatus' = [serverStatus EXCEPT ![self] = defaultInitValue]
-                      /\ pc' = [pc EXCEPT ![self] = "P1"]
+                      /\ pc' = [pc EXCEPT ![self] = "UpdateStatus"]
                       /\ UNCHANGED << IDSet, status, sent, received, channels, 
-                                      inChannels, id, client_, server, msg, 
-                                      client, serverSet, id_, msg_, head, 
-                                      subsets, message, inMsg, serverStatus_ >>
+                                      inChannels, expectedResponses, id, 
+                                      client_, server, msg, client, serverSet, 
+                                      id_, msg_, head, subsets, message, inMsg, 
+                                      serverStatus_ >>
 
 nodeHandler(self) == nodeHandler_(self)
 
@@ -316,7 +335,11 @@ clientHandler_(self) == /\ pc[self] = "clientHandler_"
                         /\ inChannels[self] /= <<>>
                         /\ inMsg' = [inMsg EXCEPT ![self] = Head((inChannels[self]))]
                         /\ inChannels' = [inChannels EXCEPT ![self] = Tail((inChannels[self]))]
-                        /\ IDSet' = Append(IDSet, inMsg'[self].id)
+                        /\ expectedResponses' = [expectedResponses EXCEPT ![client[self]] = expectedResponses[client[self]] - 1]
+                        /\ IF expectedResponses'[client[self]] = 0
+                              THEN /\ IDSet' = Append(IDSet, inMsg'[self].id)
+                              ELSE /\ TRUE
+                                   /\ IDSet' = IDSet
                         /\ serverStatus_' = [serverStatus_ EXCEPT ![self] = inMsg'[self].serverStatus]
                         /\ pc' = [pc EXCEPT ![self] = "clientHandler_"]
                         /\ UNCHANGED << status, sent, received, channels, 

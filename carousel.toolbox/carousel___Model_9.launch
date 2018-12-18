@@ -6,7 +6,7 @@
     <intAttribute key="dfidDepth" value="100"/>
     <booleanAttribute key="dfidMode" value="false"/>
     <intAttribute key="distributedFPSetCount" value="0"/>
-    <stringAttribute key="distributedNetworkInterface" value="192.168.2.18"/>
+    <stringAttribute key="distributedNetworkInterface" value="192.168.2.119"/>
     <intAttribute key="distributedNodesCount" value="1"/>
     <stringAttribute key="distributedTLC" value="off"/>
     <stringAttribute key="distributedTLCVMArgs" value=""/>
@@ -19,7 +19,7 @@
     <stringAttribute key="modelBehaviorNext" value=""/>
     <stringAttribute key="modelBehaviorSpec" value="Spec"/>
     <intAttribute key="modelBehaviorSpecType" value="1"/>
-    <stringAttribute key="modelBehaviorVars" value="node, serverStatus, msg, channels, incomingMsg, subsets, pc, msgId, clientId, msg_, serverStatus_, inMsg, inChannels, IDSet, server, received, sent, id, client_, serverSet, id_, client, serverMsg, status, message, stack, head"/>
+    <stringAttribute key="modelBehaviorVars" value="node, serverStatus, msg, channels, incomingMsg, subsets, expectedResponses, pc, msgId, clientId, msg_, serverStatus_, inMsg, inChannels, IDSet, server, received, sent, id, client_, serverSet, id_, client, serverMsg, status, message, stack, head"/>
     <stringAttribute key="modelComments" value=""/>
     <booleanAttribute key="modelCorrectnessCheckDeadlock" value="true"/>
     <listAttribute key="modelCorrectnessInvariants"/>
@@ -42,6 +42,9 @@
     <intAttribute key="simuDepth" value="100"/>
     <intAttribute key="simuSeed" value="-1"/>
     <stringAttribute key="specName" value="carousel"/>
+    <listAttribute key="traceExploreExpressions">
+        <listEntry value="1print subsets"/>
+    </listAttribute>
     <stringAttribute key="view" value=""/>
     <booleanAttribute key="visualizeStateGraph" value="false"/>
 </launchConfiguration>

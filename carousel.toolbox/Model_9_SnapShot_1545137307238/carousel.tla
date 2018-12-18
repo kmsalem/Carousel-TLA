@@ -25,7 +25,7 @@ variable
   received = [n \in Nodes |-> 0],
   channels = [n \in Nodes |-> <<>>],
   inChannels = [c \in Clients |-> <<>>],
-  expectedResponses = [i \in IDSet |-> 0],
+  expectedResponses = [c \in Clients |-> 0],
 
 \* Queue macros
 macro recv(queue, receiver)
@@ -146,8 +146,7 @@ begin
   sendClientMessages:
       while TRUE do
         with chosenSet \in subsets do
-\*            call sendClientMessagesToServers(self, chosenSet);
-                print chosenSet;
+            call sendClientMessagesToServers(self, chosenSet);
         end with;
       end while;
   clientHandler:
@@ -156,20 +155,20 @@ begin
       recv(inChannels[self], inMsg);
       
       \* Recycle ID if all expected responses received
-      expectedResponses[inMsg.id] := expectedResponses[inMsg.id] - 1;
-      if expectedResponses[inMsg.id] = 0 then
+      expectedResponses[client] := expectedResponses[client] - 1;
+      if expectedResponses[client] = 0 then
         IDSet := Append(IDSet, inMsg.id);
       end if;
       
       serverStatus := inMsg.serverStatus;
-      \* Assert serverStatus = status[server];
+\*      Assert serverStatus = status[server];
     end while;
 end process;
 
 end algorithm *)
 \* BEGIN TRANSLATION
 \* Label nodeHandler of process nodeHandler at line 131 col 5 changed to nodeHandler_
-\* Label clientHandler of process clientHandler at line 154 col 5 changed to clientHandler_
+\* Label clientHandler of process clientHandler at line 153 col 5 changed to clientHandler_
 \* Process variable msg of process clientHandler at line 140 col 3 changed to msg_
 \* Process variable serverStatus of process clientHandler at line 144 col 3 changed to serverStatus_
 \* Procedure variable id of procedure sendClientMessagesToServers at line 88 col 5 changed to id_
@@ -195,7 +194,7 @@ Init == (* Global variables *)
         /\ received = [n \in Nodes |-> 0]
         /\ channels = [n \in Nodes |-> <<>>]
         /\ inChannels = [c \in Clients |-> <<>>]
-        /\ expectedResponses = [i \in IDSet |-> 0]
+        /\ expectedResponses = [c \in Clients |-> 0]
         (* Procedure sendClientMessage *)
         /\ id = [ self \in ProcSet |-> defaultInitValue]
         /\ client_ = [ self \in ProcSet |-> defaultInitValue]
@@ -347,24 +346,30 @@ nodeHandler(self) == nodeHandler_(self)
 
 sendClientMessages(self) == /\ pc[self] = "sendClientMessages"
                             /\ \E chosenSet \in subsets[self]:
-                                 PrintT(chosenSet)
-                            /\ pc' = [pc EXCEPT ![self] = "sendClientMessages"]
+                                 /\ /\ client' = [client EXCEPT ![self] = self]
+                                    /\ serverSet' = [serverSet EXCEPT ![self] = chosenSet]
+                                    /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "sendClientMessagesToServers",
+                                                                             pc        |->  "sendClientMessages",
+                                                                             id_       |->  id_[self],
+                                                                             client    |->  client[self],
+                                                                             serverSet |->  serverSet[self] ] >>
+                                                                         \o stack[self]]
+                                 /\ id_' = [id_ EXCEPT ![self] = defaultInitValue]
+                                 /\ pc' = [pc EXCEPT ![self] = "GetID"]
                             /\ UNCHANGED << IDSet, status, sent, received, 
                                             channels, inChannels, 
-                                            expectedResponses, stack, id, 
-                                            client_, server, msg, node, 
-                                            serverMsg, incomingMsg, msgId, 
-                                            clientId, serverStatus, client, 
-                                            serverSet, id_, message, msg_, 
-                                            head, subsets, inMsg, 
-                                            serverStatus_ >>
+                                            expectedResponses, id, client_, 
+                                            server, msg, node, serverMsg, 
+                                            incomingMsg, msgId, clientId, 
+                                            serverStatus, message, msg_, head, 
+                                            subsets, inMsg, serverStatus_ >>
 
 clientHandler_(self) == /\ pc[self] = "clientHandler_"
                         /\ inChannels[self] /= <<>>
                         /\ inMsg' = [inMsg EXCEPT ![self] = Head((inChannels[self]))]
                         /\ inChannels' = [inChannels EXCEPT ![self] = Tail((inChannels[self]))]
-                        /\ expectedResponses' = [expectedResponses EXCEPT ![inMsg'[self].id] = expectedResponses[inMsg'[self].id] - 1]
-                        /\ IF expectedResponses'[inMsg'[self].id] = 0
+                        /\ expectedResponses' = [expectedResponses EXCEPT ![client[self]] = expectedResponses[client[self]] - 1]
+                        /\ IF expectedResponses'[client[self]] = 0
                               THEN /\ IDSet' = Append(IDSet, inMsg'[self].id)
                               ELSE /\ TRUE
                                    /\ IDSet' = IDSet
@@ -387,7 +392,9 @@ Next == (\E self \in ProcSet:  \/ sendClientMessage(self)
 
 Spec == /\ Init /\ [][Next]_vars
         /\ \A self \in Nodes : WF_vars(nodeHandler(self)) /\ WF_vars(updateStatus(self))
-        /\ \A self \in Clients : WF_vars(clientHandler(self))
+        /\ \A self \in Clients : /\ WF_vars(clientHandler(self))
+                                 /\ WF_vars(sendClientMessagesToServers(self))
+                                 /\ WF_vars(sendClientMessage(self))
 
 \* END TRANSLATION
 

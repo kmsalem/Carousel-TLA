@@ -25,7 +25,7 @@ variable
   received = [n \in Nodes |-> 0],
   channels = [n \in Nodes |-> <<>>],
   inChannels = [c \in Clients |-> <<>>],
-  expectedResponses = [i \in IDSet |-> 0],
+  expectedResponses = [c \in Clients |-> 0],
 
 \* Queue macros
 macro recv(queue, receiver)
@@ -156,8 +156,8 @@ begin
       recv(inChannels[self], inMsg);
       
       \* Recycle ID if all expected responses received
-      expectedResponses[inMsg.id] := expectedResponses[inMsg.id] - 1;
-      if expectedResponses[inMsg.id] = 0 then
+      expectedResponses[client] := expectedResponses[client] - 1;
+      if expectedResponses[client] = 0 then
         IDSet := Append(IDSet, inMsg.id);
       end if;
       
@@ -195,7 +195,7 @@ Init == (* Global variables *)
         /\ received = [n \in Nodes |-> 0]
         /\ channels = [n \in Nodes |-> <<>>]
         /\ inChannels = [c \in Clients |-> <<>>]
-        /\ expectedResponses = [i \in IDSet |-> 0]
+        /\ expectedResponses = [c \in Clients |-> 0]
         (* Procedure sendClientMessage *)
         /\ id = [ self \in ProcSet |-> defaultInitValue]
         /\ client_ = [ self \in ProcSet |-> defaultInitValue]
@@ -363,8 +363,8 @@ clientHandler_(self) == /\ pc[self] = "clientHandler_"
                         /\ inChannels[self] /= <<>>
                         /\ inMsg' = [inMsg EXCEPT ![self] = Head((inChannels[self]))]
                         /\ inChannels' = [inChannels EXCEPT ![self] = Tail((inChannels[self]))]
-                        /\ expectedResponses' = [expectedResponses EXCEPT ![inMsg'[self].id] = expectedResponses[inMsg'[self].id] - 1]
-                        /\ IF expectedResponses'[inMsg'[self].id] = 0
+                        /\ expectedResponses' = [expectedResponses EXCEPT ![client[self]] = expectedResponses[client[self]] - 1]
+                        /\ IF expectedResponses'[client[self]] = 0
                               THEN /\ IDSet' = Append(IDSet, inMsg'[self].id)
                               ELSE /\ TRUE
                                    /\ IDSet' = IDSet
