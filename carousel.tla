@@ -45,12 +45,10 @@ Nodes == [type: {"N"}, num: 1..N]
 
 \* Beginning of PlusCal algorithm
 (* --algorithm progress
-\* PlusCal options (-termination)
 
 variable
   \* Keep track of IDs already being used and processed
-  usedIds = {},
-  processedIds = {},
+  idsInUse = {},
   
   \* in and out channels implemented as mappings between Nodes/Clients to their respective queues
   channels = [n \in Nodes |-> <<>>],
@@ -61,22 +59,17 @@ fair process nodeHandler \in Nodes
 begin
     nodeHandlerStart:
     while TRUE do
-        await channels[self] /= <<>> \/ processedIds = IDSet;
-        if processedIds = IDSet then
-            goto nodeHandlerEnd;
-        end if;
-        nodeProcess:
+        await channels[self] /= <<>>;
         with msg = Head(channels[self]) do
             with status \in {"Committed", "Aborted"} do
-                inChannels[msg.client] := Append(inChannels[msg.client], [id |-> msg.id, serverStatus |-> status, node |-> self]);
+                inChannels[msg.client] := Append(
+                    inChannels[msg.client],
+                    [id |-> msg.id, serverStatus |-> status, node |-> self, type |-> "readRsp"]);
             end with;
         end with;
         channels[self] := Tail(channels[self]); 
     end while;
-    nodeHandlerEnd:
-    skip;
 end process;
-
 
 
 \* sender process
@@ -84,16 +77,21 @@ fair process clientHandler \in Clients
 variable
     expectedRemaining,
     currentMsg,
-    chosenSubset;
+    chosenSubset,
+    transactionStatus = [id \in IDSet |-> "Unused"],
+    abortCurrent;
 begin
   clientStart:
-  while usedIds /= IDSet do
-    with id \in IDSet \ usedIds do
+  while TRUE do
+    await idsInUse /= IDSet;
+    with id \in IDSet \ idsInUse do
         with sub \in SUBSET Nodes \ {{}} do
-            currentMsg := [id |-> id, client |-> self];
+            currentMsg := [id |-> id, client |-> self, type |-> "readReq"];
             chosenSubset := sub;
-            expectedRemaining := Cardinality(sub);
-            usedIds := usedIds \cup {id};
+            expectedRemaining := sub;
+            idsInUse := idsInUse \cup {id};
+            transactionStatus[id] := "Processing";
+            abortCurrent := FALSE;
         end with;
     end with;
     
@@ -105,86 +103,79 @@ begin
             chosenSubset := chosenSubset \ {server};
         end with;
     end while;
-    
+ 
     receiveLoop:
-    while expectedRemaining > 0 do
+    while expectedRemaining /= {} do
         await inChannels[self] /= <<>>;
         with msg = Head(inChannels[self]) do
             assert msg.id = currentMsg.id;
+            assert msg.node \in expectedRemaining;
+            expectedRemaining := expectedRemaining \ {msg.node};
+            abortCurrent := abortCurrent \/ msg.serverStatus = "Aborted";
         end with;
         inChannels[self] := Tail(inChannels[self]);
-        expectedRemaining := expectedRemaining - 1;
     end while;
     
-    setProcessed:
-    processedIds := processedIds \cup {currentMsg.id};
+    updateStatus:
+    assert currentMsg.id \in idsInUse;
+    idsInUse := idsInUse \ {currentMsg.id};
+    with status \in {"Aborted", IF abortCurrent THEN "Aborted" ELSE "Committed"} do
+        transactionStatus[currentMsg.id] := status;
+    end with;
   end while;
 end process;
 
 end algorithm *)
 \* BEGIN TRANSLATION
 CONSTANT defaultInitValue
-VARIABLES usedIds, processedIds, channels, inChannels, pc, expectedRemaining, 
-          currentMsg, chosenSubset
+VARIABLES idsInUse, channels, inChannels, pc, expectedRemaining, currentMsg, 
+          chosenSubset, transactionStatus, abortCurrent
 
-vars == << usedIds, processedIds, channels, inChannels, pc, expectedRemaining, 
-           currentMsg, chosenSubset >>
+vars == << idsInUse, channels, inChannels, pc, expectedRemaining, currentMsg, 
+           chosenSubset, transactionStatus, abortCurrent >>
 
 ProcSet == (Nodes) \cup (Clients)
 
 Init == (* Global variables *)
-        /\ usedIds = {}
-        /\ processedIds = {}
+        /\ idsInUse = {}
         /\ channels = [n \in Nodes |-> <<>>]
         /\ inChannels = [c \in Clients |-> <<>>]
         (* Process clientHandler *)
         /\ expectedRemaining = [self \in Clients |-> defaultInitValue]
         /\ currentMsg = [self \in Clients |-> defaultInitValue]
         /\ chosenSubset = [self \in Clients |-> defaultInitValue]
+        /\ transactionStatus = [self \in Clients |-> [id \in IDSet |-> "Unused"]]
+        /\ abortCurrent = [self \in Clients |-> defaultInitValue]
         /\ pc = [self \in ProcSet |-> CASE self \in Nodes -> "nodeHandlerStart"
                                         [] self \in Clients -> "clientStart"]
 
 nodeHandlerStart(self) == /\ pc[self] = "nodeHandlerStart"
-                          /\ channels[self] /= <<>> \/ processedIds = IDSet
-                          /\ IF processedIds = IDSet
-                                THEN /\ pc' = [pc EXCEPT ![self] = "nodeHandlerEnd"]
-                                ELSE /\ pc' = [pc EXCEPT ![self] = "nodeProcess"]
-                          /\ UNCHANGED << usedIds, processedIds, channels, 
-                                          inChannels, expectedRemaining, 
-                                          currentMsg, chosenSubset >>
+                          /\ channels[self] /= <<>>
+                          /\ LET msg == Head(channels[self]) IN
+                               \E status \in {"Committed", "Aborted"}:
+                                 inChannels' = [inChannels EXCEPT ![msg.client] =                       Append(
+                                                                                  inChannels[msg.client],
+                                                                                  [id |-> msg.id, serverStatus |-> status, node |-> self, type |-> "readRsp"])]
+                          /\ channels' = [channels EXCEPT ![self] = Tail(channels[self])]
+                          /\ pc' = [pc EXCEPT ![self] = "nodeHandlerStart"]
+                          /\ UNCHANGED << idsInUse, expectedRemaining, 
+                                          currentMsg, chosenSubset, 
+                                          transactionStatus, abortCurrent >>
 
-nodeProcess(self) == /\ pc[self] = "nodeProcess"
-                     /\ LET msg == Head(channels[self]) IN
-                          \E status \in {"Committed", "Aborted"}:
-                            inChannels' = [inChannels EXCEPT ![msg.client] = Append(inChannels[msg.client], [id |-> msg.id, serverStatus |-> status, node |-> self])]
-                     /\ channels' = [channels EXCEPT ![self] = Tail(channels[self])]
-                     /\ pc' = [pc EXCEPT ![self] = "nodeHandlerStart"]
-                     /\ UNCHANGED << usedIds, processedIds, expectedRemaining, 
-                                     currentMsg, chosenSubset >>
-
-nodeHandlerEnd(self) == /\ pc[self] = "nodeHandlerEnd"
-                        /\ TRUE
-                        /\ pc' = [pc EXCEPT ![self] = "Done"]
-                        /\ UNCHANGED << usedIds, processedIds, channels, 
-                                        inChannels, expectedRemaining, 
-                                        currentMsg, chosenSubset >>
-
-nodeHandler(self) == nodeHandlerStart(self) \/ nodeProcess(self)
-                        \/ nodeHandlerEnd(self)
+nodeHandler(self) == nodeHandlerStart(self)
 
 clientStart(self) == /\ pc[self] = "clientStart"
-                     /\ IF usedIds /= IDSet
-                           THEN /\ \E id \in IDSet \ usedIds:
-                                     \E sub \in SUBSET Nodes \ {{}}:
-                                       /\ currentMsg' = [currentMsg EXCEPT ![self] = [id |-> id, client |-> self]]
-                                       /\ chosenSubset' = [chosenSubset EXCEPT ![self] = sub]
-                                       /\ expectedRemaining' = [expectedRemaining EXCEPT ![self] = Cardinality(sub)]
-                                       /\ usedIds' = (usedIds \cup {id})
-                                /\ pc' = [pc EXCEPT ![self] = "sendLoop"]
-                           ELSE /\ pc' = [pc EXCEPT ![self] = "Done"]
-                                /\ UNCHANGED << usedIds, expectedRemaining, 
-                                                currentMsg, chosenSubset >>
-                     /\ UNCHANGED << processedIds, channels, inChannels >>
+                     /\ idsInUse /= IDSet
+                     /\ \E id \in IDSet \ idsInUse:
+                          \E sub \in SUBSET Nodes \ {{}}:
+                            /\ currentMsg' = [currentMsg EXCEPT ![self] = [id |-> id, client |-> self, type |-> "readReq"]]
+                            /\ chosenSubset' = [chosenSubset EXCEPT ![self] = sub]
+                            /\ expectedRemaining' = [expectedRemaining EXCEPT ![self] = sub]
+                            /\ idsInUse' = (idsInUse \cup {id})
+                            /\ transactionStatus' = [transactionStatus EXCEPT ![self][id] = "Processing"]
+                            /\ abortCurrent' = [abortCurrent EXCEPT ![self] = FALSE]
+                     /\ pc' = [pc EXCEPT ![self] = "sendLoop"]
+                     /\ UNCHANGED << channels, inChannels >>
 
 sendLoop(self) == /\ pc[self] = "sendLoop"
                   /\ IF chosenSubset[self] /= {}
@@ -194,47 +185,56 @@ sendLoop(self) == /\ pc[self] = "sendLoop"
                              /\ pc' = [pc EXCEPT ![self] = "sendLoop"]
                         ELSE /\ pc' = [pc EXCEPT ![self] = "receiveLoop"]
                              /\ UNCHANGED << channels, chosenSubset >>
-                  /\ UNCHANGED << usedIds, processedIds, inChannels, 
-                                  expectedRemaining, currentMsg >>
+                  /\ UNCHANGED << idsInUse, inChannels, expectedRemaining, 
+                                  currentMsg, transactionStatus, abortCurrent >>
 
 receiveLoop(self) == /\ pc[self] = "receiveLoop"
-                     /\ IF expectedRemaining[self] > 0
+                     /\ IF expectedRemaining[self] /= {}
                            THEN /\ inChannels[self] /= <<>>
                                 /\ LET msg == Head(inChannels[self]) IN
-                                     Assert(msg.id = currentMsg[self].id, 
-                                            "Failure of assertion at line 113, column 13.")
+                                     /\ Assert(msg.id = currentMsg[self].id, 
+                                               "Failure of assertion at line 111, column 13.")
+                                     /\ Assert(msg.node \in expectedRemaining[self], 
+                                               "Failure of assertion at line 112, column 13.")
+                                     /\ expectedRemaining' = [expectedRemaining EXCEPT ![self] = expectedRemaining[self] \ {msg.node}]
+                                     /\ abortCurrent' = [abortCurrent EXCEPT ![self] = abortCurrent[self] \/ msg.serverStatus = "Aborted"]
                                 /\ inChannels' = [inChannels EXCEPT ![self] = Tail(inChannels[self])]
-                                /\ expectedRemaining' = [expectedRemaining EXCEPT ![self] = expectedRemaining[self] - 1]
                                 /\ pc' = [pc EXCEPT ![self] = "receiveLoop"]
-                           ELSE /\ pc' = [pc EXCEPT ![self] = "setProcessed"]
-                                /\ UNCHANGED << inChannels, expectedRemaining >>
-                     /\ UNCHANGED << usedIds, processedIds, channels, 
-                                     currentMsg, chosenSubset >>
+                           ELSE /\ pc' = [pc EXCEPT ![self] = "updateStatus"]
+                                /\ UNCHANGED << inChannels, expectedRemaining, 
+                                                abortCurrent >>
+                     /\ UNCHANGED << idsInUse, channels, currentMsg, 
+                                     chosenSubset, transactionStatus >>
 
-setProcessed(self) == /\ pc[self] = "setProcessed"
-                      /\ processedIds' = (processedIds \cup {currentMsg[self].id})
+updateStatus(self) == /\ pc[self] = "updateStatus"
+                      /\ Assert(currentMsg[self].id \in idsInUse, 
+                                "Failure of assertion at line 120, column 5.")
+                      /\ idsInUse' = idsInUse \ {currentMsg[self].id}
+                      /\ \E status \in {"Aborted", IF abortCurrent[self] THEN "Aborted" ELSE "Committed"}:
+                           transactionStatus' = [transactionStatus EXCEPT ![self][currentMsg[self].id] = status]
                       /\ pc' = [pc EXCEPT ![self] = "clientStart"]
-                      /\ UNCHANGED << usedIds, channels, inChannels, 
-                                      expectedRemaining, currentMsg, 
-                                      chosenSubset >>
+                      /\ UNCHANGED << channels, inChannels, expectedRemaining, 
+                                      currentMsg, chosenSubset, abortCurrent >>
 
 clientHandler(self) == clientStart(self) \/ sendLoop(self)
-                          \/ receiveLoop(self) \/ setProcessed(self)
+                          \/ receiveLoop(self) \/ updateStatus(self)
 
 Next == (\E self \in Nodes: nodeHandler(self))
            \/ (\E self \in Clients: clientHandler(self))
-           \/ (* Disjunct to prevent deadlock on termination *)
-              ((\A self \in ProcSet: pc[self] = "Done") /\ UNCHANGED vars)
 
 Spec == /\ Init /\ [][Next]_vars
         /\ \A self \in Nodes : WF_vars(nodeHandler(self))
         /\ \A self \in Clients : WF_vars(clientHandler(self))
 
-Termination == <>(\A self \in ProcSet: pc[self] = "Done")
-
 \* END TRANSLATION
 
 \* Invariants
+ProcessingInvariant == \A id \in IDSet: \A x, y \in Clients: \/ x = y
+                                                             \/ transactionStatus[x][id] /= "Processing"
+                                                             \/ transactionStatus[y][id] /= "Processing"
+                                                             
+InUseInvariant == \A id \in IDSet: (\E x \in Clients: transactionStatus[x][id] = "Processing") <=> (id \in idsInUse)
+
 \*StatusInvariant == \A x \in 1..N:
 \*                status[x] = "Committed" \/ status[x] = "Aborted" \/ status[x] = "Prepared" \/ status[x] = "Initiated"
 \*                
