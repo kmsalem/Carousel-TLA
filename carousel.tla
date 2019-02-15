@@ -58,7 +58,8 @@ variables
 
 \* A transaction ID is free iff a process is not currently processing it  
 define
-    idsInUse == {id \in IDSet : (\E x \in Clients : transactionStatus[x][id] = "Processing")}
+    idsInUse == {id \in IDSet : (\E x \in Clients \cup Nodes \cup Coords :
+                                 transactionStatus[x][id] = "Processing")}
 end define;
 
 \* receiver process 
@@ -235,14 +236,15 @@ end process;
 
 end algorithm *)
 \* BEGIN TRANSLATION
-\* Process variable currentMsg of process nodeHandler at line 67 col 5 changed to currentMsg_
-\* Process variable currentMsg of process coordHandler at line 103 col 5 changed to currentMsg_c
-\* Process variable remainingServers of process coordHandler at line 108 col 5 changed to remainingServers_
+\* Process variable currentMsg of process nodeHandler at line 68 col 5 changed to currentMsg_
+\* Process variable currentMsg of process coordHandler at line 104 col 5 changed to currentMsg_c
+\* Process variable remainingServers of process coordHandler at line 109 col 5 changed to remainingServers_
 CONSTANT defaultInitValue
 VARIABLES transactionStatus, channels, pc
 
 (* define statement *)
-idsInUse == {id \in IDSet : (\E x \in Clients : transactionStatus[x][id] = "Processing")}
+idsInUse == {id \in IDSet : (\E x \in Clients \cup Nodes \cup Coords :
+                             transactionStatus[x][id] = "Processing")}
 
 VARIABLES currentMsg_, currentMsg_c, transactionInfo, serverResponses, 
           clientDecisions, commitDecision, remainingServers_, 
@@ -294,9 +296,9 @@ nodeProcessMsg(self) == /\ pc[self] = "nodeProcessMsg"
                                                                                                  [id |-> currentMsg_[self].id, node |-> self, type |-> "readRsp"])]
                                    /\ pc' = [pc EXCEPT ![self] = "nodeToCoord"]
                               ELSE /\ Assert(currentMsg_[self].type = "commitToNode", 
-                                             "Failure of assertion at line 91, column 9.")
-                                   /\ Assert(transactionStatus[self][currentMsg_[self].id] = "Processing", 
                                              "Failure of assertion at line 92, column 9.")
+                                   /\ Assert(transactionStatus[self][currentMsg_[self].id] = "Processing", 
+                                             "Failure of assertion at line 93, column 9.")
                                    /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentMsg_[self].id] = currentMsg_[self].decision]
                                    /\ pc' = [pc EXCEPT ![self] = "nodeHandlerStart"]
                                    /\ UNCHANGED channels
@@ -348,17 +350,17 @@ coordProcessMsg(self) == /\ pc[self] = "coordProcessMsg"
                                                           /\ pc' = [pc EXCEPT ![self] = "coordHandlerStart"]
                                                           /\ UNCHANGED serverResponses
                                                      ELSE /\ Assert(currentMsg_c[self].node \in transactionInfo[self][currentMsg_c[self].id].servers, 
-                                                                    "Failure of assertion at line 130, column 13.")
-                                                          /\ Assert(serverResponses[self][currentMsg_c[self].id][currentMsg_c[self].node] = "Init", 
                                                                     "Failure of assertion at line 131, column 13.")
+                                                          /\ Assert(serverResponses[self][currentMsg_c[self].id][currentMsg_c[self].node] = "Init", 
+                                                                    "Failure of assertion at line 132, column 13.")
                                                           /\ serverResponses' = [serverResponses EXCEPT ![self][currentMsg_c[self].id][currentMsg_c[self].node] = currentMsg_c[self].result]
                                                           /\ pc' = [pc EXCEPT ![self] = "checkForDecision"]
                                                           /\ UNCHANGED channels
                                                /\ UNCHANGED clientDecisions
                                           ELSE /\ Assert(currentMsg_c[self].type = "commitReq", 
-                                                         "Failure of assertion at line 135, column 9.")
-                                               /\ Assert(currentMsg_c[self].client = transactionInfo[self][currentMsg_c[self].id].client, 
                                                          "Failure of assertion at line 136, column 9.")
+                                               /\ Assert(currentMsg_c[self].client = transactionInfo[self][currentMsg_c[self].id].client, 
+                                                         "Failure of assertion at line 137, column 9.")
                                                /\ clientDecisions' = [clientDecisions EXCEPT ![self][currentMsg_c[self].id] = currentMsg_c[self].decision]
                                                /\ pc' = [pc EXCEPT ![self] = "checkForDecision"]
                                                /\ UNCHANGED << channels, 
@@ -372,7 +374,7 @@ coordProcessMsg(self) == /\ pc[self] = "coordProcessMsg"
 
 checkForDecision(self) == /\ pc[self] = "checkForDecision"
                           /\ Assert(transactionStatus[self][currentMsg_c[self].id] = "Processing", 
-                                    "Failure of assertion at line 141, column 5.")
+                                    "Failure of assertion at line 142, column 5.")
                           /\ IF /\ \A n \in transactionInfo[self][currentMsg_c[self].id].servers : serverResponses[self][currentMsg_c[self].id][n] /= "Init"
                                 /\ clientDecisions[self][currentMsg_c[self].id] /= "Init"
                                 THEN /\ commitDecision' = [commitDecision EXCEPT ![self] = IF /\ \A n \in transactionInfo[self][currentMsg_c[self].id].servers : serverResponses[self][currentMsg_c[self].id][n] = "Prepared"
@@ -480,11 +482,11 @@ receiveLoop(self) == /\ pc[self] = "receiveLoop"
                            THEN /\ channels[self] /= <<>>
                                 /\ LET msg == Head(channels[self]) IN
                                      /\ Assert(msg.id = currentMsg[self].id, 
-                                               "Failure of assertion at line 210, column 13.")
-                                     /\ Assert(msg.node \in remainingServers[self], 
                                                "Failure of assertion at line 211, column 13.")
-                                     /\ Assert(msg.type = "readRsp", 
+                                     /\ Assert(msg.node \in remainingServers[self], 
                                                "Failure of assertion at line 212, column 13.")
+                                     /\ Assert(msg.type = "readRsp", 
+                                               "Failure of assertion at line 213, column 13.")
                                      /\ remainingServers' = [remainingServers EXCEPT ![self] = remainingServers[self] \ {msg.node}]
                                 /\ channels' = [channels EXCEPT ![self] = Tail(channels[self])]
                                 /\ pc' = [pc EXCEPT ![self] = "receiveLoop"]
@@ -513,9 +515,9 @@ getFinalDecision(self) == /\ pc[self] = "getFinalDecision"
                           /\ channels[self] /= <<>>
                           /\ LET msg == Head(channels[self]) IN
                                /\ Assert(msg.id = currentMsg[self].id, 
-                                         "Failure of assertion at line 228, column 9.")
-                               /\ Assert(msg.type = "commitDecision", 
                                          "Failure of assertion at line 229, column 9.")
+                               /\ Assert(msg.type = "commitDecision", 
+                                         "Failure of assertion at line 230, column 9.")
                                /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentMsg[self].id] = msg.decision]
                           /\ channels' = [channels EXCEPT ![self] = Tail(channels[self])]
                           /\ pc' = [pc EXCEPT ![self] = "clientStart"]
