@@ -49,19 +49,29 @@ ASSUME CoordQSize \in Nat /\ CoordQSize > 0
 Clients == [type: {"Client"}, num: 1..C]
 Nodes == [type: {"Node"}, num: 1..N]
 Coords == [type: {"Coord"}, num: 1..M]
+
+\* Valid messages
+ReadReq == [id: IDSet, client: Clients, type: {"readReq"}, coord: Coords]
+ReadRsp == [id: IDSet, type: {"readRsp"}]
+TxnInfo == [id: IDSet, client: Clients, type: {"txnInfo"}, servers: SUBSET Nodes \ {{}}]
+CommitReq == [id: IDSet, type: {"commitReq"}, decision: {"Commit", "Abort"}]
+CommitDecision == [id: IDSet, type: {"commitDecision"}, decision: {"Committed", "Aborted"}]
+CommitToNode == [id: IDSet, type: {"commitToNode"}, decision: {"Committed", "Aborted"}]
+PrepareRsp == [id: IDSet, type: {"prepareRsp"}, result: {"Prepared", "Aborted"}]
 DummyRecord == [type |-> "dummy"]
+Message == ReadReq \cup ReadRsp \cup TxnInfo \cup CommitReq \cup CommitDecision \cup CommitToNode \cup PrepareRsp
 
 \* Beginning of PlusCal algorithm
 (* --algorithm progress
 
 variables
     \* Each process has its view of the status of a transaction
-    transactionStatus = [x \in Clients \cup Nodes \cup Coords |-> [id \in IDSet |-> "Init"]],
+    transactionStatus \in [Clients \cup Nodes \cup Coords -> [IDSet -> {"Committed", "Aborted"}]],
     \* Information for each transaction, used by coordinators
     \* A coordinator should only read from an entry if it is processing that transaction
-    transactionInfo = [id \in IDSet |-> DummyRecord],
+    transactionInfo \in [IDSet -> TxnInfo],
     serverResponses = [id \in IDSet |-> EmptyBag],
-    clientDecisions = [id \in IDSet |-> "Init"],
+    clientDecisions = [id \in IDSet |-> "Unknown"],
     \* Each process has a queue of messages to process
     channels = [x \in Clients \cup Nodes \cup Coords |-> <<>>];
 
@@ -83,29 +93,28 @@ end macro;
 \* receiver process 
 fair process nodeHandler \in Nodes
 variable
-    currentMsg;
+    currentNodeMsg \in CommitToNode;
 begin
 nodeHandlerStart:
 while TRUE do
     await channels[self] /= <<>>;
     with msg = Head(channels[self]) do
-        currentMsg := msg;
+        currentNodeMsg := msg;
     end with;
     channels[self] := Tail(channels[self]);
      
     nodeProcessMsg:
-    if currentMsg.type = "readReq" then
-        transactionStatus[self][currentMsg.id] := "Processing";
-        send([id |-> currentMsg.id, node |-> self, type |-> "readRsp"], currentMsg.client);
+    if currentNodeMsg.type = "readReq" then
+        transactionStatus[self][currentNodeMsg.id] := "Processing";
+        send([id |-> currentNodeMsg.id, type |-> "readRsp"], currentNodeMsg.client);
         
         nodeToCoord:
         with prepareResult \in {"Prepared", "Aborted"} do
-            send([id |-> currentMsg.id, node |-> self, type |-> "prepareRsp", result |-> prepareResult], currentMsg.coord);
+            send([id |-> currentNodeMsg.id, type |-> "prepareRsp", result |-> prepareResult], currentNodeMsg.coord);
         end with;
      else
-        assert currentMsg.type = "commitToNode";
-        assert transactionStatus[self][currentMsg.id] = "Processing";
-        transactionStatus[self][currentMsg.id] := currentMsg.decision;
+        \* assert transactionStatus[self][currentNodeMsg.id] = "Processing";
+        transactionStatus[self][currentNodeMsg.id] := currentNodeMsg.decision;
      end if;
 end while;
 end process;
@@ -115,58 +124,58 @@ end process;
 \* Note that we do not implement the full 2PC algorithm
 fair process coordHandler \in Coords
 variable
-    currentMsg,
-    commitDecision,
-    remainingServers;
+    currentCoordMsg \in PrepareRsp \cup CommitReq,
+    commitDecision \in {"Committed", "Aborted"},
+    remainingServers = {};
 begin
 coordHandlerStart:
 while TRUE do
     await channels[self] /= <<>>;
     with msg = Head(channels[self]) do
-        currentMsg := msg;
+        currentCoordMsg := msg;
     end with;
     channels[self] := Tail(channels[self]);
     
     coordProcessMsg:
-    if currentMsg.type = "txnInfo" then
-        transactionStatus[self][currentMsg.id] := "Processing";
-        transactionInfo[currentMsg.id] := currentMsg;    
-    elsif currentMsg.type = "prepareRsp" then
-        transactionStatus[self][currentMsg.id] := "Processing";
-        serverResponses[currentMsg.id] := serverResponses[currentMsg.id] (+) SetToBag({currentMsg.result});
+    if currentCoordMsg.type = "txnInfo" then
+        transactionStatus[self][currentCoordMsg.id] := "Processing";
+        transactionInfo[currentCoordMsg.id] := currentCoordMsg;    
+    elsif currentCoordMsg.type = "prepareRsp" then
+        transactionStatus[self][currentCoordMsg.id] := "Processing";
+        serverResponses[currentCoordMsg.id] := serverResponses[currentCoordMsg.id] (+) SetToBag({currentCoordMsg.result});
     else
-        transactionStatus[self][currentMsg.id] := "Processing";
-        clientDecisions[currentMsg.id] := currentMsg.decision;
+        \* The decision can't be received before the "txnInfo" message
+        \* assert transactionStatus[self][currentCoordMsg.id] = "Processing";
+        clientDecisions[currentCoordMsg.id] := currentCoordMsg.decision;
     end if;
     
     checkForDecision:
-    assert transactionStatus[self][currentMsg.id] = "Processing";
-    if /\ transactionInfo[currentMsg.id] /= DummyRecord
-       /\ BagCardinality(serverResponses[currentMsg.id]) = Cardinality(transactionInfo[currentMsg.id].servers)
-       /\ clientDecisions[currentMsg.id] /= "Init" then
-        commitDecision := IF /\ BagToSet(serverResponses[currentMsg.id]) = {"Prepared"}
-                             /\ clientDecisions[currentMsg.id] = "Commit"
+    if /\ transactionInfo[currentCoordMsg.id] /= DummyRecord
+       /\ BagCardinality(serverResponses[currentCoordMsg.id]) = Cardinality(transactionInfo[currentCoordMsg.id].servers)
+       /\ clientDecisions[currentCoordMsg.id] /= "Unknown" then
+        commitDecision := IF /\ BagToSet(serverResponses[currentCoordMsg.id]) = {"Prepared"}
+                             /\ clientDecisions[currentCoordMsg.id] = "Commit"
                           THEN "Committed" ELSE "Aborted";
-        remainingServers := transactionInfo[currentMsg.id].servers;
+        remainingServers := transactionInfo[currentCoordMsg.id].servers;
         
         sendDecisionToClient:
-        with client = transactionInfo[currentMsg.id].client do
-            send([id |-> currentMsg.id, type |-> "commitDecision", decision |-> commitDecision], client);
+        with client = transactionInfo[currentCoordMsg.id].client do
+            send([id |-> currentCoordMsg.id, type |-> "commitDecision", decision |-> commitDecision], client);
         end with;
         
         sendDecisionToNodes:
         while remainingServers /= {} do
             with server = minProc(remainingServers) do
-                send([id |-> currentMsg.id, type |-> "commitToNode", decision |-> commitDecision], server);
+                send([id |-> currentCoordMsg.id, type |-> "commitToNode", decision |-> commitDecision], server);
                 remainingServers := remainingServers \ {server};
             end with;
         end while;
         
         updateCoordStatus:
-        transactionStatus[self][currentMsg.id] := commitDecision;
-        serverResponses[currentMsg.id] := EmptyBag;
-        clientDecisions[currentMsg.id] := "Init";
-        transactionInfo[currentMsg.id] := DummyRecord;
+        transactionStatus[self][currentCoordMsg.id] := commitDecision;
+        serverResponses[currentCoordMsg.id] := EmptyBag;
+        clientDecisions[currentCoordMsg.id] := "Unknown";
+        transactionInfo[currentCoordMsg.id] := DummyRecord;
     end if;
 end while;
 end process;
@@ -176,56 +185,54 @@ end process;
 \* Processes only one transaction at a time
 fair process clientHandler \in Clients
 variable
-    remainingServers,
-    currentMsg,
-    chosenServers,
+    remainingCount = 0,
+    currentClientMsg \in ReadReq,
+    chosenServers = {},
 begin
 clientStart:
 while TRUE do
     await idsInUse /= IDSet;
     with id \in IDSet \ idsInUse, sub \in SUBSET Nodes \ {{}}, coord \in Coords do
-        currentMsg := [id |-> id, client |-> self, type |-> "readReq", coord |-> coord];
+        currentClientMsg := [id |-> id, client |-> self, type |-> "readReq", coord |-> coord];
         chosenServers := sub;
-        remainingServers := sub;
+        remainingCount := Cardinality(sub);
         transactionStatus[self][id] := "Processing";
     end with;
+    
+    sendInfoToCoord:
+    send([id |-> currentClientMsg.id, client |-> self, type |-> "txnInfo", servers |-> chosenServers], currentClientMsg.coord);
 
     \* Send message to every server chosen
     sendLoop:
-    while remainingServers /= {} do
-        with server = minProc(remainingServers) do
-            send(currentMsg, server);
-            remainingServers := remainingServers \ {server};
+    while chosenServers /= {} do
+        with server = minProc(chosenServers) do
+            send(currentClientMsg, server);
+            chosenServers := chosenServers \ {server};
         end with;
     end while;
     
-    sendInfoToCoord:
-    send([id |-> currentMsg.id, client |-> self, type |-> "txnInfo", servers |-> chosenServers], currentMsg.coord);
-    remainingServers := chosenServers;
-    
     receiveLoop:
-    while remainingServers /= {} do
+    while remainingCount /= 0 do
         await channels[self] /= <<>>;
         with msg = Head(channels[self]) do
-            assert msg.id = currentMsg.id;
-            assert msg.node \in remainingServers;
-            assert msg.type = "readRsp";
-            remainingServers := remainingServers \ {msg.node};
+            \* assert msg.id = currentClientMsg.id;
+            \* assert msg \in ReadRsp;
+            remainingCount := remainingCount - 1;
         end with;
         channels[self] := Tail(channels[self]);
     end while;
     
     sendDecision:
     with decision \in {"Abort", "Commit"} do
-        send([id |-> currentMsg.id, client |-> self, type |-> "commitReq", decision |-> decision], currentMsg.coord);
+        send([id |-> currentClientMsg.id, type |-> "commitReq", decision |-> decision], currentClientMsg.coord);
     end with;
     
     getFinalDecision:
     await channels[self] /= <<>>;
     with msg = Head(channels[self]) do
-        assert msg.id = currentMsg.id;
-        assert msg.type = "commitDecision";
-        transactionStatus[self][currentMsg.id] := msg.decision;
+        \* assert msg.id = currentClientMsg.id;
+        \* assert msg \in CommitDecision;
+        transactionStatus[self][currentClientMsg.id] := msg.decision;
     end with;
     channels[self] := Tail(channels[self]);
 end while;
@@ -233,10 +240,6 @@ end process;
 
 end algorithm *)
 \* BEGIN TRANSLATION
-\* Process variable currentMsg of process nodeHandler at line 86 col 5 changed to currentMsg_
-\* Process variable currentMsg of process coordHandler at line 118 col 5 changed to currentMsg_c
-\* Process variable remainingServers of process coordHandler at line 120 col 5 changed to remainingServers_
-CONSTANT defaultInitValue
 VARIABLES transactionStatus, transactionInfo, serverResponses, 
           clientDecisions, channels, pc
 
@@ -245,32 +248,32 @@ idsInUse == {id \in IDSet : (\E x \in Clients \cup Nodes \cup Coords :
                              transactionStatus[x][id] = "Processing")}
 minProc(procs) == CHOOSE p \in procs : \A q \in procs : p.num <= q.num
 
-VARIABLES currentMsg_, currentMsg_c, commitDecision, remainingServers_, 
-          remainingServers, currentMsg, chosenServers
+VARIABLES currentNodeMsg, currentCoordMsg, commitDecision, remainingServers, 
+          remainingCount, currentClientMsg, chosenServers
 
 vars == << transactionStatus, transactionInfo, serverResponses, 
-           clientDecisions, channels, pc, currentMsg_, currentMsg_c, 
-           commitDecision, remainingServers_, remainingServers, currentMsg, 
+           clientDecisions, channels, pc, currentNodeMsg, currentCoordMsg, 
+           commitDecision, remainingServers, remainingCount, currentClientMsg, 
            chosenServers >>
 
 ProcSet == (Nodes) \cup (Coords) \cup (Clients)
 
 Init == (* Global variables *)
-        /\ transactionStatus = [x \in Clients \cup Nodes \cup Coords |-> [id \in IDSet |-> "Init"]]
-        /\ transactionInfo = [id \in IDSet |-> DummyRecord]
+        /\ transactionStatus \in [Clients \cup Nodes \cup Coords -> [IDSet -> {"Committed", "Aborted"}]]
+        /\ transactionInfo \in [IDSet -> TxnInfo]
         /\ serverResponses = [id \in IDSet |-> EmptyBag]
-        /\ clientDecisions = [id \in IDSet |-> "Init"]
+        /\ clientDecisions = [id \in IDSet |-> "Unknown"]
         /\ channels = [x \in Clients \cup Nodes \cup Coords |-> <<>>]
         (* Process nodeHandler *)
-        /\ currentMsg_ = [self \in Nodes |-> defaultInitValue]
+        /\ currentNodeMsg \in [Nodes -> CommitToNode]
         (* Process coordHandler *)
-        /\ currentMsg_c = [self \in Coords |-> defaultInitValue]
-        /\ commitDecision = [self \in Coords |-> defaultInitValue]
-        /\ remainingServers_ = [self \in Coords |-> defaultInitValue]
+        /\ currentCoordMsg \in [Coords -> PrepareRsp \cup CommitReq]
+        /\ commitDecision \in [Coords -> {"Committed", "Aborted"}]
+        /\ remainingServers = [self \in Coords |-> {}]
         (* Process clientHandler *)
-        /\ remainingServers = [self \in Clients |-> defaultInitValue]
-        /\ currentMsg = [self \in Clients |-> defaultInitValue]
-        /\ chosenServers = [self \in Clients |-> defaultInitValue]
+        /\ remainingCount = [self \in Clients |-> 0]
+        /\ currentClientMsg \in [Clients -> ReadReq]
+        /\ chosenServers = [self \in Clients |-> {}]
         /\ pc = [self \in ProcSet |-> CASE self \in Nodes -> "nodeHandlerStart"
                                         [] self \in Coords -> "coordHandlerStart"
                                         [] self \in Clients -> "clientStart"]
@@ -278,48 +281,45 @@ Init == (* Global variables *)
 nodeHandlerStart(self) == /\ pc[self] = "nodeHandlerStart"
                           /\ channels[self] /= <<>>
                           /\ LET msg == Head(channels[self]) IN
-                               currentMsg_' = [currentMsg_ EXCEPT ![self] = msg]
+                               currentNodeMsg' = [currentNodeMsg EXCEPT ![self] = msg]
                           /\ channels' = [channels EXCEPT ![self] = Tail(channels[self])]
                           /\ pc' = [pc EXCEPT ![self] = "nodeProcessMsg"]
                           /\ UNCHANGED << transactionStatus, transactionInfo, 
                                           serverResponses, clientDecisions, 
-                                          currentMsg_c, commitDecision, 
-                                          remainingServers_, remainingServers, 
-                                          currentMsg, chosenServers >>
+                                          currentCoordMsg, commitDecision, 
+                                          remainingServers, remainingCount, 
+                                          currentClientMsg, chosenServers >>
 
 nodeProcessMsg(self) == /\ pc[self] = "nodeProcessMsg"
-                        /\ IF currentMsg_[self].type = "readReq"
-                              THEN /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentMsg_[self].id] = "Processing"]
-                                   /\ Len(channels[(currentMsg_[self].client)]) < CASE (currentMsg_[self].client) \in Clients -> ClientQSize
-                                                                                    [] (currentMsg_[self].client) \in Nodes -> NodeQSize
-                                                                                    [] (currentMsg_[self].client) \in Coords -> CoordQSize
-                                   /\ channels' = [channels EXCEPT ![(currentMsg_[self].client)] = Append(channels[(currentMsg_[self].client)], ([id |-> currentMsg_[self].id, node |-> self, type |-> "readRsp"]))]
+                        /\ IF currentNodeMsg[self].type = "readReq"
+                              THEN /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentNodeMsg[self].id] = "Processing"]
+                                   /\ Len(channels[(currentNodeMsg[self].client)]) < CASE (currentNodeMsg[self].client) \in Clients -> ClientQSize
+                                                                                       [] (currentNodeMsg[self].client) \in Nodes -> NodeQSize
+                                                                                       [] (currentNodeMsg[self].client) \in Coords -> CoordQSize
+                                   /\ channels' = [channels EXCEPT ![(currentNodeMsg[self].client)] = Append(channels[(currentNodeMsg[self].client)], ([id |-> currentNodeMsg[self].id, type |-> "readRsp"]))]
                                    /\ pc' = [pc EXCEPT ![self] = "nodeToCoord"]
-                              ELSE /\ Assert(currentMsg_[self].type = "commitToNode", 
-                                             "Failure of assertion at line 106, column 9.")
-                                   /\ Assert(transactionStatus[self][currentMsg_[self].id] = "Processing", 
-                                             "Failure of assertion at line 107, column 9.")
-                                   /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentMsg_[self].id] = currentMsg_[self].decision]
+                              ELSE /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentNodeMsg[self].id] = currentNodeMsg[self].decision]
                                    /\ pc' = [pc EXCEPT ![self] = "nodeHandlerStart"]
                                    /\ UNCHANGED channels
                         /\ UNCHANGED << transactionInfo, serverResponses, 
-                                        clientDecisions, currentMsg_, 
-                                        currentMsg_c, commitDecision, 
-                                        remainingServers_, remainingServers, 
-                                        currentMsg, chosenServers >>
+                                        clientDecisions, currentNodeMsg, 
+                                        currentCoordMsg, commitDecision, 
+                                        remainingServers, remainingCount, 
+                                        currentClientMsg, chosenServers >>
 
 nodeToCoord(self) == /\ pc[self] = "nodeToCoord"
                      /\ \E prepareResult \in {"Prepared", "Aborted"}:
-                          /\ Len(channels[(currentMsg_[self].coord)]) < CASE (currentMsg_[self].coord) \in Clients -> ClientQSize
-                                                                          [] (currentMsg_[self].coord) \in Nodes -> NodeQSize
-                                                                          [] (currentMsg_[self].coord) \in Coords -> CoordQSize
-                          /\ channels' = [channels EXCEPT ![(currentMsg_[self].coord)] = Append(channels[(currentMsg_[self].coord)], ([id |-> currentMsg_[self].id, node |-> self, type |-> "prepareRsp", result |-> prepareResult]))]
+                          /\ Len(channels[(currentNodeMsg[self].coord)]) < CASE (currentNodeMsg[self].coord) \in Clients -> ClientQSize
+                                                                             [] (currentNodeMsg[self].coord) \in Nodes -> NodeQSize
+                                                                             [] (currentNodeMsg[self].coord) \in Coords -> CoordQSize
+                          /\ channels' = [channels EXCEPT ![(currentNodeMsg[self].coord)] = Append(channels[(currentNodeMsg[self].coord)], ([id |-> currentNodeMsg[self].id, type |-> "prepareRsp", result |-> prepareResult]))]
                      /\ pc' = [pc EXCEPT ![self] = "nodeHandlerStart"]
                      /\ UNCHANGED << transactionStatus, transactionInfo, 
                                      serverResponses, clientDecisions, 
-                                     currentMsg_, currentMsg_c, commitDecision, 
-                                     remainingServers_, remainingServers, 
-                                     currentMsg, chosenServers >>
+                                     currentNodeMsg, currentCoordMsg, 
+                                     commitDecision, remainingServers, 
+                                     remainingCount, currentClientMsg, 
+                                     chosenServers >>
 
 nodeHandler(self) == nodeHandlerStart(self) \/ nodeProcessMsg(self)
                         \/ nodeToCoord(self)
@@ -327,99 +327,96 @@ nodeHandler(self) == nodeHandlerStart(self) \/ nodeProcessMsg(self)
 coordHandlerStart(self) == /\ pc[self] = "coordHandlerStart"
                            /\ channels[self] /= <<>>
                            /\ LET msg == Head(channels[self]) IN
-                                currentMsg_c' = [currentMsg_c EXCEPT ![self] = msg]
+                                currentCoordMsg' = [currentCoordMsg EXCEPT ![self] = msg]
                            /\ channels' = [channels EXCEPT ![self] = Tail(channels[self])]
                            /\ pc' = [pc EXCEPT ![self] = "coordProcessMsg"]
                            /\ UNCHANGED << transactionStatus, transactionInfo, 
                                            serverResponses, clientDecisions, 
-                                           currentMsg_, commitDecision, 
-                                           remainingServers_, remainingServers, 
-                                           currentMsg, chosenServers >>
+                                           currentNodeMsg, commitDecision, 
+                                           remainingServers, remainingCount, 
+                                           currentClientMsg, chosenServers >>
 
 coordProcessMsg(self) == /\ pc[self] = "coordProcessMsg"
-                         /\ IF currentMsg_c[self].type = "txnInfo"
-                               THEN /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentMsg_c[self].id] = "Processing"]
-                                    /\ transactionInfo' = [transactionInfo EXCEPT ![currentMsg_c[self].id] = currentMsg_c[self]]
+                         /\ IF currentCoordMsg[self].type = "txnInfo"
+                               THEN /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentCoordMsg[self].id] = "Processing"]
+                                    /\ transactionInfo' = [transactionInfo EXCEPT ![currentCoordMsg[self].id] = currentCoordMsg[self]]
                                     /\ UNCHANGED << serverResponses, 
                                                     clientDecisions >>
-                               ELSE /\ IF currentMsg_c[self].type = "prepareRsp"
-                                          THEN /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentMsg_c[self].id] = "Processing"]
-                                               /\ serverResponses' = [serverResponses EXCEPT ![currentMsg_c[self].id] = serverResponses[currentMsg_c[self].id] (+) SetToBag({currentMsg_c[self].result})]
+                               ELSE /\ IF currentCoordMsg[self].type = "prepareRsp"
+                                          THEN /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentCoordMsg[self].id] = "Processing"]
+                                               /\ serverResponses' = [serverResponses EXCEPT ![currentCoordMsg[self].id] = serverResponses[currentCoordMsg[self].id] (+) SetToBag({currentCoordMsg[self].result})]
                                                /\ UNCHANGED clientDecisions
-                                          ELSE /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentMsg_c[self].id] = "Processing"]
-                                               /\ clientDecisions' = [clientDecisions EXCEPT ![currentMsg_c[self].id] = currentMsg_c[self].decision]
-                                               /\ UNCHANGED serverResponses
+                                          ELSE /\ clientDecisions' = [clientDecisions EXCEPT ![currentCoordMsg[self].id] = currentCoordMsg[self].decision]
+                                               /\ UNCHANGED << transactionStatus, 
+                                                               serverResponses >>
                                     /\ UNCHANGED transactionInfo
                          /\ pc' = [pc EXCEPT ![self] = "checkForDecision"]
-                         /\ UNCHANGED << channels, currentMsg_, currentMsg_c, 
-                                         commitDecision, remainingServers_, 
-                                         remainingServers, currentMsg, 
-                                         chosenServers >>
+                         /\ UNCHANGED << channels, currentNodeMsg, 
+                                         currentCoordMsg, commitDecision, 
+                                         remainingServers, remainingCount, 
+                                         currentClientMsg, chosenServers >>
 
 checkForDecision(self) == /\ pc[self] = "checkForDecision"
-                          /\ Assert(transactionStatus[self][currentMsg_c[self].id] = "Processing", 
-                                    "Failure of assertion at line 143, column 5.")
-                          /\ IF /\ transactionInfo[currentMsg_c[self].id] /= DummyRecord
-                                /\ BagCardinality(serverResponses[currentMsg_c[self].id]) = Cardinality(transactionInfo[currentMsg_c[self].id].servers)
-                                /\ clientDecisions[currentMsg_c[self].id] /= "Init"
-                                THEN /\ commitDecision' = [commitDecision EXCEPT ![self] = IF /\ BagToSet(serverResponses[currentMsg_c[self].id]) = {"Prepared"}
-                                                                                              /\ clientDecisions[currentMsg_c[self].id] = "Commit"
+                          /\ IF /\ transactionInfo[currentCoordMsg[self].id] /= DummyRecord
+                                /\ BagCardinality(serverResponses[currentCoordMsg[self].id]) = Cardinality(transactionInfo[currentCoordMsg[self].id].servers)
+                                /\ clientDecisions[currentCoordMsg[self].id] /= "Unknown"
+                                THEN /\ commitDecision' = [commitDecision EXCEPT ![self] = IF /\ BagToSet(serverResponses[currentCoordMsg[self].id]) = {"Prepared"}
+                                                                                              /\ clientDecisions[currentCoordMsg[self].id] = "Commit"
                                                                                            THEN "Committed" ELSE "Aborted"]
-                                     /\ remainingServers_' = [remainingServers_ EXCEPT ![self] = transactionInfo[currentMsg_c[self].id].servers]
+                                     /\ remainingServers' = [remainingServers EXCEPT ![self] = transactionInfo[currentCoordMsg[self].id].servers]
                                      /\ pc' = [pc EXCEPT ![self] = "sendDecisionToClient"]
                                 ELSE /\ pc' = [pc EXCEPT ![self] = "coordHandlerStart"]
                                      /\ UNCHANGED << commitDecision, 
-                                                     remainingServers_ >>
+                                                     remainingServers >>
                           /\ UNCHANGED << transactionStatus, transactionInfo, 
                                           serverResponses, clientDecisions, 
-                                          channels, currentMsg_, currentMsg_c, 
-                                          remainingServers, currentMsg, 
-                                          chosenServers >>
+                                          channels, currentNodeMsg, 
+                                          currentCoordMsg, remainingCount, 
+                                          currentClientMsg, chosenServers >>
 
 sendDecisionToClient(self) == /\ pc[self] = "sendDecisionToClient"
-                              /\ LET client == transactionInfo[currentMsg_c[self].id].client IN
+                              /\ LET client == transactionInfo[currentCoordMsg[self].id].client IN
                                    /\ Len(channels[client]) < CASE client \in Clients -> ClientQSize
                                                                 [] client \in Nodes -> NodeQSize
                                                                 [] client \in Coords -> CoordQSize
-                                   /\ channels' = [channels EXCEPT ![client] = Append(channels[client], ([id |-> currentMsg_c[self].id, type |-> "commitDecision", decision |-> commitDecision[self]]))]
+                                   /\ channels' = [channels EXCEPT ![client] = Append(channels[client], ([id |-> currentCoordMsg[self].id, type |-> "commitDecision", decision |-> commitDecision[self]]))]
                               /\ pc' = [pc EXCEPT ![self] = "sendDecisionToNodes"]
                               /\ UNCHANGED << transactionStatus, 
                                               transactionInfo, serverResponses, 
-                                              clientDecisions, currentMsg_, 
-                                              currentMsg_c, commitDecision, 
-                                              remainingServers_, 
-                                              remainingServers, currentMsg, 
-                                              chosenServers >>
+                                              clientDecisions, currentNodeMsg, 
+                                              currentCoordMsg, commitDecision, 
+                                              remainingServers, remainingCount, 
+                                              currentClientMsg, chosenServers >>
 
 sendDecisionToNodes(self) == /\ pc[self] = "sendDecisionToNodes"
-                             /\ IF remainingServers_[self] /= {}
-                                   THEN /\ LET server == minProc(remainingServers_[self]) IN
+                             /\ IF remainingServers[self] /= {}
+                                   THEN /\ LET server == minProc(remainingServers[self]) IN
                                              /\ Len(channels[server]) < CASE server \in Clients -> ClientQSize
                                                                           [] server \in Nodes -> NodeQSize
                                                                           [] server \in Coords -> CoordQSize
-                                             /\ channels' = [channels EXCEPT ![server] = Append(channels[server], ([id |-> currentMsg_c[self].id, type |-> "commitToNode", decision |-> commitDecision[self]]))]
-                                             /\ remainingServers_' = [remainingServers_ EXCEPT ![self] = remainingServers_[self] \ {server}]
+                                             /\ channels' = [channels EXCEPT ![server] = Append(channels[server], ([id |-> currentCoordMsg[self].id, type |-> "commitToNode", decision |-> commitDecision[self]]))]
+                                             /\ remainingServers' = [remainingServers EXCEPT ![self] = remainingServers[self] \ {server}]
                                         /\ pc' = [pc EXCEPT ![self] = "sendDecisionToNodes"]
                                    ELSE /\ pc' = [pc EXCEPT ![self] = "updateCoordStatus"]
                                         /\ UNCHANGED << channels, 
-                                                        remainingServers_ >>
+                                                        remainingServers >>
                              /\ UNCHANGED << transactionStatus, 
                                              transactionInfo, serverResponses, 
-                                             clientDecisions, currentMsg_, 
-                                             currentMsg_c, commitDecision, 
-                                             remainingServers, currentMsg, 
+                                             clientDecisions, currentNodeMsg, 
+                                             currentCoordMsg, commitDecision, 
+                                             remainingCount, currentClientMsg, 
                                              chosenServers >>
 
 updateCoordStatus(self) == /\ pc[self] = "updateCoordStatus"
-                           /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentMsg_c[self].id] = commitDecision[self]]
-                           /\ serverResponses' = [serverResponses EXCEPT ![currentMsg_c[self].id] = EmptyBag]
-                           /\ clientDecisions' = [clientDecisions EXCEPT ![currentMsg_c[self].id] = "Init"]
-                           /\ transactionInfo' = [transactionInfo EXCEPT ![currentMsg_c[self].id] = DummyRecord]
+                           /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentCoordMsg[self].id] = commitDecision[self]]
+                           /\ serverResponses' = [serverResponses EXCEPT ![currentCoordMsg[self].id] = EmptyBag]
+                           /\ clientDecisions' = [clientDecisions EXCEPT ![currentCoordMsg[self].id] = "Unknown"]
+                           /\ transactionInfo' = [transactionInfo EXCEPT ![currentCoordMsg[self].id] = DummyRecord]
                            /\ pc' = [pc EXCEPT ![self] = "coordHandlerStart"]
-                           /\ UNCHANGED << channels, currentMsg_, currentMsg_c, 
-                                           commitDecision, remainingServers_, 
-                                           remainingServers, currentMsg, 
-                                           chosenServers >>
+                           /\ UNCHANGED << channels, currentNodeMsg, 
+                                           currentCoordMsg, commitDecision, 
+                                           remainingServers, remainingCount, 
+                                           currentClientMsg, chosenServers >>
 
 coordHandler(self) == coordHandlerStart(self) \/ coordProcessMsg(self)
                          \/ checkForDecision(self)
@@ -432,98 +429,89 @@ clientStart(self) == /\ pc[self] = "clientStart"
                      /\ \E id \in IDSet \ idsInUse:
                           \E sub \in SUBSET Nodes \ {{}}:
                             \E coord \in Coords:
-                              /\ currentMsg' = [currentMsg EXCEPT ![self] = [id |-> id, client |-> self, type |-> "readReq", coord |-> coord]]
+                              /\ currentClientMsg' = [currentClientMsg EXCEPT ![self] = [id |-> id, client |-> self, type |-> "readReq", coord |-> coord]]
                               /\ chosenServers' = [chosenServers EXCEPT ![self] = sub]
-                              /\ remainingServers' = [remainingServers EXCEPT ![self] = sub]
+                              /\ remainingCount' = [remainingCount EXCEPT ![self] = Cardinality(sub)]
                               /\ transactionStatus' = [transactionStatus EXCEPT ![self][id] = "Processing"]
-                     /\ pc' = [pc EXCEPT ![self] = "sendLoop"]
+                     /\ pc' = [pc EXCEPT ![self] = "sendInfoToCoord"]
                      /\ UNCHANGED << transactionInfo, serverResponses, 
-                                     clientDecisions, channels, currentMsg_, 
-                                     currentMsg_c, commitDecision, 
-                                     remainingServers_ >>
+                                     clientDecisions, channels, currentNodeMsg, 
+                                     currentCoordMsg, commitDecision, 
+                                     remainingServers >>
+
+sendInfoToCoord(self) == /\ pc[self] = "sendInfoToCoord"
+                         /\ Len(channels[(currentClientMsg[self].coord)]) < CASE (currentClientMsg[self].coord) \in Clients -> ClientQSize
+                                                                              [] (currentClientMsg[self].coord) \in Nodes -> NodeQSize
+                                                                              [] (currentClientMsg[self].coord) \in Coords -> CoordQSize
+                         /\ channels' = [channels EXCEPT ![(currentClientMsg[self].coord)] = Append(channels[(currentClientMsg[self].coord)], ([id |-> currentClientMsg[self].id, client |-> self, type |-> "txnInfo", servers |-> chosenServers[self]]))]
+                         /\ pc' = [pc EXCEPT ![self] = "sendLoop"]
+                         /\ UNCHANGED << transactionStatus, transactionInfo, 
+                                         serverResponses, clientDecisions, 
+                                         currentNodeMsg, currentCoordMsg, 
+                                         commitDecision, remainingServers, 
+                                         remainingCount, currentClientMsg, 
+                                         chosenServers >>
 
 sendLoop(self) == /\ pc[self] = "sendLoop"
-                  /\ IF remainingServers[self] /= {}
-                        THEN /\ LET server == minProc(remainingServers[self]) IN
+                  /\ IF chosenServers[self] /= {}
+                        THEN /\ LET server == minProc(chosenServers[self]) IN
                                   /\ Len(channels[server]) < CASE server \in Clients -> ClientQSize
                                                                [] server \in Nodes -> NodeQSize
                                                                [] server \in Coords -> CoordQSize
-                                  /\ channels' = [channels EXCEPT ![server] = Append(channels[server], currentMsg[self])]
-                                  /\ remainingServers' = [remainingServers EXCEPT ![self] = remainingServers[self] \ {server}]
+                                  /\ channels' = [channels EXCEPT ![server] = Append(channels[server], currentClientMsg[self])]
+                                  /\ chosenServers' = [chosenServers EXCEPT ![self] = chosenServers[self] \ {server}]
                              /\ pc' = [pc EXCEPT ![self] = "sendLoop"]
-                        ELSE /\ pc' = [pc EXCEPT ![self] = "sendInfoToCoord"]
-                             /\ UNCHANGED << channels, remainingServers >>
+                        ELSE /\ pc' = [pc EXCEPT ![self] = "receiveLoop"]
+                             /\ UNCHANGED << channels, chosenServers >>
                   /\ UNCHANGED << transactionStatus, transactionInfo, 
                                   serverResponses, clientDecisions, 
-                                  currentMsg_, currentMsg_c, commitDecision, 
-                                  remainingServers_, currentMsg, chosenServers >>
-
-sendInfoToCoord(self) == /\ pc[self] = "sendInfoToCoord"
-                         /\ Len(channels[(currentMsg[self].coord)]) < CASE (currentMsg[self].coord) \in Clients -> ClientQSize
-                                                                        [] (currentMsg[self].coord) \in Nodes -> NodeQSize
-                                                                        [] (currentMsg[self].coord) \in Coords -> CoordQSize
-                         /\ channels' = [channels EXCEPT ![(currentMsg[self].coord)] = Append(channels[(currentMsg[self].coord)], ([id |-> currentMsg[self].id, client |-> self, type |-> "txnInfo", servers |-> chosenServers[self]]))]
-                         /\ remainingServers' = [remainingServers EXCEPT ![self] = chosenServers[self]]
-                         /\ pc' = [pc EXCEPT ![self] = "receiveLoop"]
-                         /\ UNCHANGED << transactionStatus, transactionInfo, 
-                                         serverResponses, clientDecisions, 
-                                         currentMsg_, currentMsg_c, 
-                                         commitDecision, remainingServers_, 
-                                         currentMsg, chosenServers >>
+                                  currentNodeMsg, currentCoordMsg, 
+                                  commitDecision, remainingServers, 
+                                  remainingCount, currentClientMsg >>
 
 receiveLoop(self) == /\ pc[self] = "receiveLoop"
-                     /\ IF remainingServers[self] /= {}
+                     /\ IF remainingCount[self] /= 0
                            THEN /\ channels[self] /= <<>>
                                 /\ LET msg == Head(channels[self]) IN
-                                     /\ Assert(msg.id = currentMsg[self].id, 
-                                               "Failure of assertion at line 210, column 13.")
-                                     /\ Assert(msg.node \in remainingServers[self], 
-                                               "Failure of assertion at line 211, column 13.")
-                                     /\ Assert(msg.type = "readRsp", 
-                                               "Failure of assertion at line 212, column 13.")
-                                     /\ remainingServers' = [remainingServers EXCEPT ![self] = remainingServers[self] \ {msg.node}]
+                                     remainingCount' = [remainingCount EXCEPT ![self] = remainingCount[self] - 1]
                                 /\ channels' = [channels EXCEPT ![self] = Tail(channels[self])]
                                 /\ pc' = [pc EXCEPT ![self] = "receiveLoop"]
                            ELSE /\ pc' = [pc EXCEPT ![self] = "sendDecision"]
-                                /\ UNCHANGED << channels, remainingServers >>
+                                /\ UNCHANGED << channels, remainingCount >>
                      /\ UNCHANGED << transactionStatus, transactionInfo, 
                                      serverResponses, clientDecisions, 
-                                     currentMsg_, currentMsg_c, commitDecision, 
-                                     remainingServers_, currentMsg, 
-                                     chosenServers >>
+                                     currentNodeMsg, currentCoordMsg, 
+                                     commitDecision, remainingServers, 
+                                     currentClientMsg, chosenServers >>
 
 sendDecision(self) == /\ pc[self] = "sendDecision"
                       /\ \E decision \in {"Abort", "Commit"}:
-                           /\ Len(channels[(currentMsg[self].coord)]) < CASE (currentMsg[self].coord) \in Clients -> ClientQSize
-                                                                          [] (currentMsg[self].coord) \in Nodes -> NodeQSize
-                                                                          [] (currentMsg[self].coord) \in Coords -> CoordQSize
-                           /\ channels' = [channels EXCEPT ![(currentMsg[self].coord)] = Append(channels[(currentMsg[self].coord)], ([id |-> currentMsg[self].id, client |-> self, type |-> "commitReq", decision |-> decision]))]
+                           /\ Len(channels[(currentClientMsg[self].coord)]) < CASE (currentClientMsg[self].coord) \in Clients -> ClientQSize
+                                                                                [] (currentClientMsg[self].coord) \in Nodes -> NodeQSize
+                                                                                [] (currentClientMsg[self].coord) \in Coords -> CoordQSize
+                           /\ channels' = [channels EXCEPT ![(currentClientMsg[self].coord)] = Append(channels[(currentClientMsg[self].coord)], ([id |-> currentClientMsg[self].id, type |-> "commitReq", decision |-> decision]))]
                       /\ pc' = [pc EXCEPT ![self] = "getFinalDecision"]
                       /\ UNCHANGED << transactionStatus, transactionInfo, 
                                       serverResponses, clientDecisions, 
-                                      currentMsg_, currentMsg_c, 
-                                      commitDecision, remainingServers_, 
-                                      remainingServers, currentMsg, 
+                                      currentNodeMsg, currentCoordMsg, 
+                                      commitDecision, remainingServers, 
+                                      remainingCount, currentClientMsg, 
                                       chosenServers >>
 
 getFinalDecision(self) == /\ pc[self] = "getFinalDecision"
                           /\ channels[self] /= <<>>
                           /\ LET msg == Head(channels[self]) IN
-                               /\ Assert(msg.id = currentMsg[self].id, 
-                                         "Failure of assertion at line 226, column 9.")
-                               /\ Assert(msg.type = "commitDecision", 
-                                         "Failure of assertion at line 227, column 9.")
-                               /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentMsg[self].id] = msg.decision]
+                               transactionStatus' = [transactionStatus EXCEPT ![self][currentClientMsg[self].id] = msg.decision]
                           /\ channels' = [channels EXCEPT ![self] = Tail(channels[self])]
                           /\ pc' = [pc EXCEPT ![self] = "clientStart"]
                           /\ UNCHANGED << transactionInfo, serverResponses, 
-                                          clientDecisions, currentMsg_, 
-                                          currentMsg_c, commitDecision, 
-                                          remainingServers_, remainingServers, 
-                                          currentMsg, chosenServers >>
+                                          clientDecisions, currentNodeMsg, 
+                                          currentCoordMsg, commitDecision, 
+                                          remainingServers, remainingCount, 
+                                          currentClientMsg, chosenServers >>
 
-clientHandler(self) == clientStart(self) \/ sendLoop(self)
-                          \/ sendInfoToCoord(self) \/ receiveLoop(self)
+clientHandler(self) == clientStart(self) \/ sendInfoToCoord(self)
+                          \/ sendLoop(self) \/ receiveLoop(self)
                           \/ sendDecision(self) \/ getFinalDecision(self)
 
 Next == (\E self \in Nodes: nodeHandler(self))
@@ -538,13 +526,30 @@ Spec == /\ Init /\ [][Next]_vars
 \* END TRANSLATION
 
 \* Invariants
-ProcessingInvariant == \A id \in IDSet: \A x, y \in Clients: \/ x = y
-                                                             \/ transactionStatus[x][id] /= "Processing"
-                                                             \/ transactionStatus[y][id] /= "Processing"
+ProcessingInvariant == \A id \in IDSet: /\ \A x, y \in Clients: \/ x = y
+                                                                \/ transactionStatus[x][id] /= "Processing"
+                                                                \/ transactionStatus[y][id] /= "Processing"
+                                        /\ \A x, y \in Coords:  \/ x = y
+                                                                \/ transactionStatus[x][id] /= "Processing"
+                                                                \/ transactionStatus[y][id] /= "Processing"
+                                                  
 
 ChannelInvariant == \A p \in ProcSet : Len(channels[p]) <= CASE p \in Clients -> ClientQSize
                                                              [] p \in Nodes -> NodeQSize
                                                              [] p \in Coords -> CoordQSize
+
+TypeInvariant == /\ transactionStatus \in [ProcSet -> [IDSet -> {"Committed", "Aborted", "Processing"}]]
+                 /\ transactionInfo \in [IDSet -> TxnInfo \cup {DummyRecord}]
+                 /\ serverResponses \in [IDSet -> SubBag([x \in {"Prepared", "Aborted"} |-> N])]
+                 /\ clientDecisions \in [IDSet -> {"Unknown", "Commit", "Abort"}]
+                 /\ channels \in [ProcSet -> Seq(Message)]
+                 /\ \A self \in Clients: /\ remainingCount[self] \in 0..N
+                                         /\ currentClientMsg[self] \in ReadReq
+                                         /\ chosenServers[self] \in SUBSET Nodes
+                 /\ \A self \in Nodes: /\ currentNodeMsg[self] \in ReadReq \cup CommitToNode
+                 /\ \A self \in Coords: /\ currentCoordMsg[self] \in TxnInfo \cup CommitReq \cup PrepareRsp
+                                        /\ commitDecision[self] \in {"Committed", "Aborted"}
+                                        /\ remainingServers[self] \in SUBSET Nodes
                                                              
 \*StatusInvariant == \A x \in 1..N:
 \*                status[x] = "Committed" \/ status[x] = "Aborted" \/ status[x] = "Prepared" \/ status[x] = "Initiated"
