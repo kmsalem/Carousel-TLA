@@ -37,18 +37,15 @@ EXTENDS Naturals, FiniteSets, Sequences, TLC, Bags
 \* N = Number of Nodes
 \* M = Number of Coordinators
 \* IDSet = Set of labels
-CONSTANT C, N, M, IDSet, ClientQSize, NodeQSize, CoordQSize
-ASSUME C \in Nat /\ C > 0
-ASSUME N \in Nat /\ N > 0
-ASSUME M \in Nat /\ M > 0
+CONSTANT Clients, Nodes, Coords, IDSet, ClientQSize, NodeQSize, CoordQSize
 ASSUME ClientQSize \in Nat /\ ClientQSize > 0
 ASSUME NodeQSize \in Nat /\ NodeQSize > 0
 ASSUME CoordQSize \in Nat /\ CoordQSize > 0
 
 \* Clients and Nodes as sets
-Clients == [type: {"Client"}, num: 1..C]
-Nodes == [type: {"Node"}, num: 1..N]
-Coords == [type: {"Coord"}, num: 1..M]
+C == Cardinality(Clients)
+N == Cardinality(Nodes)
+M == Cardinality(Coords)
 
 \* Valid messages
 ReadReq == [id: IDSet, client: Clients, type: {"readReq"}, coord: Coords]
@@ -79,7 +76,6 @@ variables
 define
     idsInUse == {id \in IDSet : (\E x \in Clients \cup Nodes \cup Coords :
                                  transactionStatus[x][id] = "Processing")}
-    minProc(procs) == CHOOSE p \in procs : \A q \in procs : p.num <= q.num
 end define;
 
 macro send(msg, proc)
@@ -165,7 +161,7 @@ while TRUE do
         
         sendDecisionToNodes:
         while remainingServers /= {} do
-            with server = minProc(remainingServers) do
+            with server \in remainingServers do
                 send([id |-> currentCoordMsg.id, type |-> "commitToNode", decision |-> commitDecision], server);
                 remainingServers := remainingServers \ {server};
             end with;
@@ -205,7 +201,7 @@ while TRUE do
     \* Send message to every server chosen
     sendLoop:
     while chosenServers /= {} do
-        with server = minProc(chosenServers) do
+        with server \in chosenServers do
             send(currentClientMsg, server);
             chosenServers := chosenServers \ {server};
         end with;
@@ -246,7 +242,6 @@ VARIABLES transactionStatus, transactionInfo, serverResponses,
 (* define statement *)
 idsInUse == {id \in IDSet : (\E x \in Clients \cup Nodes \cup Coords :
                              transactionStatus[x][id] = "Processing")}
-minProc(procs) == CHOOSE p \in procs : \A q \in procs : p.num <= q.num
 
 VARIABLES currentNodeMsg, currentCoordMsg, commitDecision, remainingServers, 
           remainingCount, currentClientMsg, chosenServers
@@ -390,7 +385,7 @@ sendDecisionToClient(self) == /\ pc[self] = "sendDecisionToClient"
 
 sendDecisionToNodes(self) == /\ pc[self] = "sendDecisionToNodes"
                              /\ IF remainingServers[self] /= {}
-                                   THEN /\ LET server == minProc(remainingServers[self]) IN
+                                   THEN /\ \E server \in remainingServers[self]:
                                              /\ Len(channels[server]) < CASE server \in Clients -> ClientQSize
                                                                           [] server \in Nodes -> NodeQSize
                                                                           [] server \in Coords -> CoordQSize
@@ -454,7 +449,7 @@ sendInfoToCoord(self) == /\ pc[self] = "sendInfoToCoord"
 
 sendLoop(self) == /\ pc[self] = "sendLoop"
                   /\ IF chosenServers[self] /= {}
-                        THEN /\ LET server == minProc(chosenServers[self]) IN
+                        THEN /\ \E server \in chosenServers[self]:
                                   /\ Len(channels[server]) < CASE server \in Clients -> ClientQSize
                                                                [] server \in Nodes -> NodeQSize
                                                                [] server \in Coords -> CoordQSize
