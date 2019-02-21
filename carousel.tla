@@ -66,10 +66,10 @@ Message == ReadReq \cup ReadRsp \cup TxnInfo \cup CommitReq \cup CommitDecision 
 
 variables
     \* Each process has its view of the status of a transaction
-    transactionStatus \in [Clients \cup Nodes \cup Coords -> [IDSet -> {"Committed", "Aborted"}]],
+    transactionStatus = [p \in Clients \cup Nodes \cup Coords |-> [id \in IDSet |-> "Aborted"]],
     \* Information for each transaction, used by coordinators
     \* A coordinator should only read from an entry if it is processing that transaction
-    transactionInfo \in [IDSet -> TxnInfo],
+    transactionInfo = [id \in IDSet |-> CHOOSE msg \in TxnInfo : msg.id = id],
     serverResponses = [id \in IDSet |-> EmptyBag],
     clientDecisions = [id \in IDSet |-> "Unknown"],
     \* Each process has a queue of messages to process
@@ -93,7 +93,7 @@ end macro;
 \* receiver process 
 fair process nodeHandler \in Nodes
 variable
-    currentNodeMsg \in CommitToNode;
+    currentNodeMsg = CHOOSE msg \in CommitToNode: msg.decision = "Aborted";
 begin
 nodeHandlerStart:
 while TRUE do
@@ -124,8 +124,8 @@ end process;
 \* Note that we do not implement the full 2PC algorithm
 fair process coordHandler \in Coords
 variable
-    currentCoordMsg \in PrepareRsp \cup CommitReq,
-    commitDecision \in {"Committed", "Aborted"},
+    currentCoordMsg = CHOOSE msg \in CommitReq: msg.decision = "Abort",
+    commitDecision = "Aborted",
     remainingServers = {};
 begin
 coordHandlerStart:
@@ -186,7 +186,7 @@ end process;
 fair process clientHandler \in Clients
 variable
     remainingCount = 0,
-    currentClientMsg \in ReadReq,
+    currentClientMsg = CHOOSE msg \in ReadReq: msg.client = self,
     chosenServers = {},
 begin
 clientStart:
@@ -259,20 +259,20 @@ vars == << transactionStatus, transactionInfo, serverResponses,
 ProcSet == (Nodes) \cup (Coords) \cup (Clients)
 
 Init == (* Global variables *)
-        /\ transactionStatus \in [Clients \cup Nodes \cup Coords -> [IDSet -> {"Committed", "Aborted"}]]
-        /\ transactionInfo \in [IDSet -> TxnInfo]
+        /\ transactionStatus = [p \in Clients \cup Nodes \cup Coords |-> [id \in IDSet |-> "Aborted"]]
+        /\ transactionInfo = [id \in IDSet |-> CHOOSE msg \in TxnInfo : msg.id = id]
         /\ serverResponses = [id \in IDSet |-> EmptyBag]
         /\ clientDecisions = [id \in IDSet |-> "Unknown"]
         /\ channels = [x \in Clients \cup Nodes \cup Coords |-> <<>>]
         (* Process nodeHandler *)
-        /\ currentNodeMsg \in [Nodes -> CommitToNode]
+        /\ currentNodeMsg = [self \in Nodes |-> CHOOSE msg \in CommitToNode: msg.decision = "Aborted"]
         (* Process coordHandler *)
-        /\ currentCoordMsg \in [Coords -> PrepareRsp \cup CommitReq]
-        /\ commitDecision \in [Coords -> {"Committed", "Aborted"}]
+        /\ currentCoordMsg = [self \in Coords |-> CHOOSE msg \in CommitReq: msg.decision = "Abort"]
+        /\ commitDecision = [self \in Coords |-> "Aborted"]
         /\ remainingServers = [self \in Coords |-> {}]
         (* Process clientHandler *)
         /\ remainingCount = [self \in Clients |-> 0]
-        /\ currentClientMsg \in [Clients -> ReadReq]
+        /\ currentClientMsg = [self \in Clients |-> CHOOSE msg \in ReadReq: msg.client = self]
         /\ chosenServers = [self \in Clients |-> {}]
         /\ pc = [self \in ProcSet |-> CASE self \in Nodes -> "nodeHandlerStart"
                                         [] self \in Coords -> "coordHandlerStart"
