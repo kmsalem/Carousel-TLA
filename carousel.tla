@@ -66,9 +66,9 @@ variables
     transactionStatus = [p \in Clients \cup Nodes \cup Coords |-> [id \in IDSet |-> "Aborted"]],
     \* Information for each transaction, used by coordinators
     \* A coordinator should only read from an entry if it is processing that transaction
-    transactionInfo = [id \in IDSet |-> CHOOSE msg \in TxnInfo : msg.id = id],
-    serverResponses = [id \in IDSet |-> EmptyBag],
-    clientDecisions = [id \in IDSet |-> "Unknown"],
+    transactionInfo = [id \in IDSet |-> CHOOSE msg \in TxnInfo : msg.id = id /\ Cardinality(msg.servers) = 1],
+    serverResponses = [id \in IDSet |-> SetToBag({"Abort"})],
+    clientDecisions = [id \in IDSet |-> "Aborted"],
     \* Each process has a queue of messages to process
     channels = [x \in Clients \cup Nodes \cup Coords |-> <<>>];
 
@@ -169,9 +169,6 @@ while TRUE do
         
         updateCoordStatus:
         transactionStatus[self][currentCoordMsg.id] := commitDecision;
-        serverResponses[currentCoordMsg.id] := EmptyBag;
-        clientDecisions[currentCoordMsg.id] := "Unknown";
-        transactionInfo[currentCoordMsg.id] := DummyRecord;
     end if;
 end while;
 end process;
@@ -193,6 +190,11 @@ while TRUE do
         chosenServers := sub;
         remainingCount := Cardinality(sub);
         transactionStatus[self][id] := "Processing";
+        
+        \* The previous transaction with this ID should be forgotten
+        serverResponses[id] := EmptyBag;
+        clientDecisions[id] := "Unknown";
+        transactionInfo[id] := DummyRecord;
     end with;
     
     sendInfoToCoord:
@@ -255,9 +257,9 @@ ProcSet == (Nodes) \cup (Coords) \cup (Clients)
 
 Init == (* Global variables *)
         /\ transactionStatus = [p \in Clients \cup Nodes \cup Coords |-> [id \in IDSet |-> "Aborted"]]
-        /\ transactionInfo = [id \in IDSet |-> CHOOSE msg \in TxnInfo : msg.id = id]
-        /\ serverResponses = [id \in IDSet |-> EmptyBag]
-        /\ clientDecisions = [id \in IDSet |-> "Unknown"]
+        /\ transactionInfo = [id \in IDSet |-> CHOOSE msg \in TxnInfo : msg.id = id /\ Cardinality(msg.servers) = 1]
+        /\ serverResponses = [id \in IDSet |-> SetToBag({"Abort"})]
+        /\ clientDecisions = [id \in IDSet |-> "Aborted"]
         /\ channels = [x \in Clients \cup Nodes \cup Coords |-> <<>>]
         (* Process nodeHandler *)
         /\ currentNodeMsg = [self \in Nodes |-> CHOOSE msg \in CommitToNode: msg.decision = "Aborted"]
@@ -404,14 +406,13 @@ sendDecisionToNodes(self) == /\ pc[self] = "sendDecisionToNodes"
 
 updateCoordStatus(self) == /\ pc[self] = "updateCoordStatus"
                            /\ transactionStatus' = [transactionStatus EXCEPT ![self][currentCoordMsg[self].id] = commitDecision[self]]
-                           /\ serverResponses' = [serverResponses EXCEPT ![currentCoordMsg[self].id] = EmptyBag]
-                           /\ clientDecisions' = [clientDecisions EXCEPT ![currentCoordMsg[self].id] = "Unknown"]
-                           /\ transactionInfo' = [transactionInfo EXCEPT ![currentCoordMsg[self].id] = DummyRecord]
                            /\ pc' = [pc EXCEPT ![self] = "coordHandlerStart"]
-                           /\ UNCHANGED << channels, currentNodeMsg, 
-                                           currentCoordMsg, commitDecision, 
-                                           remainingServers, remainingCount, 
-                                           currentClientMsg, chosenServers >>
+                           /\ UNCHANGED << transactionInfo, serverResponses, 
+                                           clientDecisions, channels, 
+                                           currentNodeMsg, currentCoordMsg, 
+                                           commitDecision, remainingServers, 
+                                           remainingCount, currentClientMsg, 
+                                           chosenServers >>
 
 coordHandler(self) == coordHandlerStart(self) \/ coordProcessMsg(self)
                          \/ checkForDecision(self)
@@ -428,11 +429,12 @@ clientStart(self) == /\ pc[self] = "clientStart"
                               /\ chosenServers' = [chosenServers EXCEPT ![self] = sub]
                               /\ remainingCount' = [remainingCount EXCEPT ![self] = Cardinality(sub)]
                               /\ transactionStatus' = [transactionStatus EXCEPT ![self][id] = "Processing"]
+                              /\ serverResponses' = [serverResponses EXCEPT ![id] = EmptyBag]
+                              /\ clientDecisions' = [clientDecisions EXCEPT ![id] = "Unknown"]
+                              /\ transactionInfo' = [transactionInfo EXCEPT ![id] = DummyRecord]
                      /\ pc' = [pc EXCEPT ![self] = "sendInfoToCoord"]
-                     /\ UNCHANGED << transactionInfo, serverResponses, 
-                                     clientDecisions, channels, currentNodeMsg, 
-                                     currentCoordMsg, commitDecision, 
-                                     remainingServers >>
+                     /\ UNCHANGED << channels, currentNodeMsg, currentCoordMsg, 
+                                     commitDecision, remainingServers >>
 
 sendInfoToCoord(self) == /\ pc[self] = "sendInfoToCoord"
                          /\ Len(channels[(currentClientMsg[self].coord)]) < CASE (currentClientMsg[self].coord) \in Clients -> ClientQSize
@@ -532,6 +534,14 @@ ProcessingInvariant == \A id \in IDSet: /\ \A x, y \in Clients: \/ x = y
 ChannelInvariant == \A p \in ProcSet : Len(channels[p]) <= CASE p \in Clients -> ClientQSize
                                                              [] p \in Nodes -> NodeQSize
                                                              [] p \in Coords -> CoordQSize
+
+DecisionInvariant == \A id \in IDSet \ idsInUse:
+    LET lastTransaction == transactionInfo[id]
+        clientStatus == transactionStatus[lastTransaction.client][id]
+    IN /\ \A server \in lastTransaction.servers: transactionStatus[server][id] = clientStatus
+       /\ clientStatus = "Committed" <=> /\ clientDecisions[id] = "Commit"
+                                         /\ BagToSet(serverResponses[id]) = {"Prepared"}
+          
 
 TypeInvariant == /\ transactionStatus \in [ProcSet -> [IDSet -> {"Committed", "Aborted", "Processing"}]]
                  /\ transactionInfo \in [IDSet -> TxnInfo \cup {DummyRecord}]
