@@ -555,6 +555,8 @@ TypeInvariant == /\ transactionStatus \in [ProcSet -> [IDSet -> {"Committed", "A
                  /\ \A self \in Coords: /\ currentCoordMsg[self] \in TxnInfo \cup CommitReq \cup PrepareRsp
                                         /\ commitDecision[self] \in {"Committed", "Aborted"}
                                         /\ remainingServers[self] \in SUBSET Nodes
+
+Perms == Permutations(IDSet) \union Permutations(Clients) \union Permutations(Nodes) \union Permutations(Coords)
                                                              
 \*StatusInvariant == \A x \in 1..N:
 \*                status[x] = "Committed" \/ status[x] = "Aborted" \/ status[x] = "Prepared" \/ status[x] = "Initiated"
