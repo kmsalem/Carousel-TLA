@@ -20,7 +20,7 @@ proctype Coordinator(){
 	bool finalDecision = true;
     
 	coordinatorChannelC ? receivedDecision, participantCount;
-     
+    byte temp = participantCount;
 	if
 	:: receivedDecision == false -> 
 		finalDecision = false;
@@ -42,8 +42,8 @@ proctype Coordinator(){
 	{
 	clientChannelsFromCoordinator[0] ! finalDecision; 
 	do
-	::participantCount > 0 -> 
-		atomic{participantChannelsFromCoordinator[participantCount - 1] ! finalDecision; participantCount--;}
+	::temp > 0 -> 
+		atomic{participantChannelsFromCoordinator[temp - 1] ! finalDecision; temp--;}
 	::else -> 
 		break;	
 	od;
