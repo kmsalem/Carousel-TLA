@@ -1,5 +1,6 @@
 #define CLIENT_NUM 1
 #define PARTICIPANT_NUM 2
+// Only 1 coordinator
 
 chan clientChannels[CLIENT_NUM] = [1] of {byte};
 chan clientChannelsFromCoordinator[CLIENT_NUM] = [1] of {bool};
@@ -56,6 +57,7 @@ proctype Client(byte id)
 	byte TID = _pid;
 	byte receiveMsg;
 	client_num++;
+	bool finalDecision;
 
 	do
 	:: i < PARTICIPANT_NUM -> atomic{participantChannels[i] ! TID, id ; i++; numSent++};
@@ -69,7 +71,7 @@ proctype Client(byte id)
 		atomic
 		{
 		clientChannels[id] ? receiveMsg;
-		assert(receiveMsg == TID);
+		//assert(receiveMsg == TID);
 		numSent--;
 		}
 	:: else -> break;
@@ -80,6 +82,7 @@ proctype Client(byte id)
 	  ::  coordinatorChannelC ! false, temp;
 	fi
 
+	participantChannelsFromCoordinator[id] ? finalDecision;
 }
 
 proctype Participant(byte id)
@@ -87,6 +90,7 @@ proctype Participant(byte id)
 	byte receiveTID;
 	byte receiveClientId;
 	participant_num++;
+	bool finalDecision;
 	
 	participantChannels[id] ? receiveTID, receiveClientId -> clientChannels[receiveClientId] ! receiveTID;
     
@@ -94,7 +98,8 @@ proctype Participant(byte id)
 		::coordinatorChannelP ! true;
 		::coordinatorChannelP ! false;
 	fi
-
+	
+	participantChannelsFromCoordinator[id] ? finalDecision;
 }
 
 init
