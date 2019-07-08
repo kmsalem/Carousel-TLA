@@ -1,6 +1,8 @@
 #define PARTICIPANT_NUM 5
 // Only 1 coordinator, 1 client
 
+mtype{Active, Prepared, Committed, Aborted}
+
 chan clientChannelsFromParticipant = [1] of {byte};
 chan clientChannelsFromCoordinator = [1] of {bool};
 
@@ -22,6 +24,8 @@ active proctype Coordinator(){
 	byte participantID;
 	assert(!participants[0]);
 	assert(!participants[1]);
+
+	mtype Coordinator_state = Active;
     
 	coordinatorChannelFromClient ? participantCount;
     byte i = participantCount;
@@ -32,16 +36,16 @@ active proctype Coordinator(){
 		{ 
 		   coordinatorChannelFromParticipant ? receivedDecision, participantID;
 		   if
-		   :: receivedDecision == false -> finalDecision = false;
+		   :: receivedDecision == false -> finalDecision = false; Coordinator_state = Aborted;
 		   :: else -> i--; participants[participantID] = true; /* This P agrees to commit*/
 		   fi
 		}
 	od;
-	
+
 	coordinatorChannelFromClient ? clientDecision;
 	if
 	:: clientDecision == 0 ->
-		finalDecision = false;
+		finalDecision = false; Coordinator_state = Aborted;
 	fi
 
 	i = 0;
@@ -57,6 +61,10 @@ active proctype Coordinator(){
 		break;	
 	od;
 
+	if
+	::Coordinator_state == Active -> Coordinator_state = Committed;
+	fi
+
 }
 
 active proctype Client()
@@ -66,6 +74,8 @@ active proctype Client()
 	byte TID = _pid;
 	byte receiveMsg;
 	bool finalDecision;
+
+    mtype Client_state = Active;
 
 	do
 	:: i < PARTICIPANT_NUM -> if
@@ -88,11 +98,17 @@ active proctype Client()
 	od;
 
 	if
-	  ::  coordinatorChannelFromClient ! 1;
-	  ::  coordinatorChannelFromClient ! 0;
+	  ::  coordinatorChannelFromClient ! 1; Client_state = Prepared;
+	  ::  coordinatorChannelFromClient ! 0; Client_state = Aborted;
 	fi
 
 	clientChannelsFromCoordinator ? finalDecision;
+
+	if
+	  :: Client_state == Prepared && finalDecision-> Client_state = Committed;
+      :: else -> Client_state = Aborted;
+    fi
+
 }
 
 proctype Participant(byte id)
@@ -101,15 +117,23 @@ proctype Participant(byte id)
 	byte receiveClientId;
 	participant_num++;
 	bool finalDecision;
+
+	mtype Participant_state = Active;
 	
 	participantChannelsFromClient[id] ? receiveTID -> clientChannelsFromParticipant ! receiveTID;
     
 	if
-		::coordinatorChannelFromParticipant ! true, id;
-		::coordinatorChannelFromParticipant ! false, id;
+		::coordinatorChannelFromParticipant ! true, id; Participant_state = Prepared;
+		::coordinatorChannelFromParticipant ! false, id; Participant_state = Aborted;
 	fi
 	
 	participantChannelsFromCoordinator[id] ? finalDecision;
+
+    if
+	  :: Participant_state == Prepared && finalDecision-> Participant_state = Committed;
+      :: else -> Participant_state = Aborted;
+    fi
+
 }
 
 init
