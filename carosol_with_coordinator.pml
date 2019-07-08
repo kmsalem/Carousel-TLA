@@ -1,88 +1,98 @@
-#define CLIENT_NUM 1
-#define PARTICIPANT_NUM 2
-// Only 1 coordinator
+#define PARTICIPANT_NUM 5
+// Only 1 coordinator, 1 client
 
-chan clientChannels[CLIENT_NUM] = [1] of {byte};
-chan clientChannelsFromCoordinator[CLIENT_NUM] = [1] of {bool};
+chan clientChannelsFromParticipant = [1] of {byte};
+chan clientChannelsFromCoordinator = [1] of {bool};
 
-chan participantChannels[PARTICIPANT_NUM] = [2] of {byte, byte}; // TID, ClientId
+chan participantChannelsFromClient[PARTICIPANT_NUM] = [2] of {byte}; // TID
 chan participantChannelsFromCoordinator[PARTICIPANT_NUM] = [1] of {bool};
 
-chan coordinatorChannelC = [1] of {bool, byte}
-chan coordinatorChannelP = [2] of {bool}
+chan coordinatorChannelFromClient = [1] of {byte} // first time read: participant count; second time read: commit/abort
+chan coordinatorChannelFromParticipant = [2] of {bool, byte} // decision, ID
 
-byte client_num = 0;
 byte participant_num = 0;
 
-proctype Coordinator(){
+active proctype Coordinator(){
 	bool receivedDecision;
+	byte clientDecision;
+	
 	byte participantCount;
 	bool finalDecision = true;
+	bool participants[PARTICIPANT_NUM];
+	byte participantID;
+	assert(!participants[0]);
+	assert(!participants[1]);
     
-	coordinatorChannelC ? receivedDecision, participantCount;
-    byte temp = participantCount;
+	coordinatorChannelFromClient ? participantCount;
+    byte i = participantCount;
+	
+	do		 
+	:: i > 0 ->
+		atomic
+		{ 
+		   coordinatorChannelFromParticipant ? receivedDecision, participantID;
+		   if
+		   :: receivedDecision == false -> finalDecision = false;
+		   :: else -> i--; participants[participantID] = true; /* This P agrees to commit*/
+		   fi
+		}
+	od;
+	
+	coordinatorChannelFromClient ? clientDecision;
 	if
-	:: receivedDecision == false -> 
+	:: clientDecision == 0 ->
 		finalDecision = false;
-	:: else ->
-		do		 
-		:: participantCount > 0 ->
-			atomic
-			{ 
-			   coordinatorChannelP ? receivedDecision;
-			   if
-			   :: receivedDecision == false -> atomic{finalDecision = false; break;}
-			   :: else -> participantCount--; /* This P agrees to commit*/
-			   fi
-			}
-		od;
 	fi
 
-	atomic
-	{
-	clientChannelsFromCoordinator[0] ! finalDecision; 
+	i = 0;
+	
+	clientChannelsFromCoordinator ! finalDecision; 
 	do
-	::temp > 0 -> 
-		atomic{participantChannelsFromCoordinator[temp - 1] ! finalDecision; temp--;}
+	::i < PARTICIPANT_NUM -> 
+		if
+		:: participants[i] -> participantChannelsFromCoordinator[i] ! finalDecision;
+		fi
+		i++;
 	::else -> 
 		break;	
 	od;
-	}
+
 }
 
-proctype Client(byte id)
+active proctype Client()
 {
 	byte i = 0;
 	byte numSent = 0; 
 	byte TID = _pid;
 	byte receiveMsg;
-	client_num++;
 	bool finalDecision;
 
 	do
-	:: i < PARTICIPANT_NUM -> atomic{participantChannels[i] ! TID, id ; i++; numSent++};
+	:: i < PARTICIPANT_NUM -> if
+		:: participantChannelsFromClient[i] ! TID; i++; numSent++;
+		:: i++;
+		fi
 	:: i >= PARTICIPANT_NUM -> break;
 	od;
+	
+	coordinatorChannelFromClient ! numSent;
 	
 	byte temp = numSent;
 
 	do		 
 	:: numSent > 0 ->
-		atomic
-		{
-		clientChannels[id] ? receiveMsg;
-		//assert(receiveMsg == TID);
+		clientChannelsFromParticipant ? receiveMsg;
+		assert(receiveMsg == TID);
 		numSent--;
-		}
 	:: else -> break;
 	od;
 
 	if
-	  ::  coordinatorChannelC ! true, temp;
-	  ::  coordinatorChannelC ! false, temp;
+	  ::  coordinatorChannelFromClient ! 1;
+	  ::  coordinatorChannelFromClient ! 0;
 	fi
 
-	participantChannelsFromCoordinator[id] ? finalDecision;
+	clientChannelsFromCoordinator ? finalDecision;
 }
 
 proctype Participant(byte id)
@@ -92,11 +102,11 @@ proctype Participant(byte id)
 	participant_num++;
 	bool finalDecision;
 	
-	participantChannels[id] ? receiveTID, receiveClientId -> clientChannels[receiveClientId] ! receiveTID;
+	participantChannelsFromClient[id] ? receiveTID -> clientChannelsFromParticipant ! receiveTID;
     
 	if
-		::coordinatorChannelP ! true;
-		::coordinatorChannelP ! false;
+		::coordinatorChannelFromParticipant ! true, id;
+		::coordinatorChannelFromParticipant ! false, id;
 	fi
 	
 	participantChannelsFromCoordinator[id] ? finalDecision;
@@ -107,19 +117,11 @@ init
 	atomic
 	{
 		byte i = 0;
-		do
-		:: i < CLIENT_NUM -> run Client(i); i++;
-		:: i >= CLIENT_NUM -> break;
-		od;
-		
-		i = 0;
 		
 		do
 		:: i < PARTICIPANT_NUM -> run Participant(i); i++;
 		:: i >= PARTICIPANT_NUM -> break;
 		od;
-		
-		run Coordinator();
 	}
 }
 
@@ -127,7 +129,6 @@ never
 {
 	do
 	:: !(participant_num <= PARTICIPANT_NUM) -> break
-	:: !(client_num <= CLIENT_NUM ) -> break
 	:: else
 	od
 }
