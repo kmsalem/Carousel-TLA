@@ -14,6 +14,10 @@ chan coordinatorChannelFromParticipant = [2] of {bool, byte} // decision, ID
 
 byte participant_num = 0;
 
+mtype Coordinator_state = Active;
+mtype Client_state = Active;
+mtype Participant_state [6] = Active;
+
 active proctype Coordinator(){
 	bool receivedDecision;
 	byte clientDecision;
@@ -22,8 +26,6 @@ active proctype Coordinator(){
 	bool finalDecision = true;
 	bool participants[PARTICIPANT_NUM];
 	byte participantID;
-
-	mtype Coordinator_state = Active;
     
 	coordinatorChannelFromClient ? participantCount;
     byte i = participantCount;
@@ -74,8 +76,6 @@ active proctype Client()
 	byte receiveMsg;
 	bool finalDecision;
 
-   	 mtype Client_state = Active;
-
 	do
 	:: i < PARTICIPANT_NUM -> if
 		:: participantChannelsFromClient[i] ! TID; i++; numSent++;
@@ -116,21 +116,20 @@ proctype Participant(byte id)
 	byte receiveClientId;
 	participant_num++;
 	bool finalDecision;
+	assert(Participant_state[id] == Active);
 
-	mtype Participant_state = Active;
-	
 	participantChannelsFromClient[id] ? receiveTID -> clientChannelsFromParticipant ! receiveTID;
     
 	if
-		::coordinatorChannelFromParticipant ! true, id; Participant_state = Prepared;
-		::coordinatorChannelFromParticipant ! false, id; Participant_state = Aborted;
+		::coordinatorChannelFromParticipant ! true, id; Participant_state[id] = Prepared;
+		::coordinatorChannelFromParticipant ! false, id; Participant_state[id] = Aborted;
 	fi
 	
 	participantChannelsFromCoordinator[id] ? finalDecision;
 
     if
-	  :: Participant_state == Prepared && finalDecision-> Participant_state = Committed;
-     	 :: else -> Participant_state = Aborted;
+	  :: Participant_state[id] == Prepared && finalDecision-> Participant_state[id] = Committed;
+     	 :: else -> Participant_state[id] = Aborted;
     fi
 
 }
@@ -152,6 +151,18 @@ never
 {
 	do
 	:: !(participant_num <= PARTICIPANT_NUM) -> break
+	
+	:: if 
+	   :: Client_state == Committed ->  Coordinator_state != Committed -> break
+	   :: Participant_state[0] == Committed ->  Coordinator_state != Committed -> break
+	   :: Participant_state[1] == Committed ->  Coordinator_state != Committed -> break
+	   :: Participant_state[2] == Committed ->  Coordinator_state != Committed -> break
+	   :: Participant_state[3] == Committed ->  Coordinator_state != Committed -> break
+	   :: Participant_state[4] == Committed ->  Coordinator_state != Committed -> break
+	   :: Participant_state[5] == Committed ->  Coordinator_state != Committed -> break
+	   :: else
+	   fi
+
 	:: else
 	od
 }
