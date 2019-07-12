@@ -1,4 +1,4 @@
-#define PARTICIPANT_NUM 5
+#define PARTICIPANT_NUM 6
 // Only 1 coordinator, 1 client
 
 mtype{Active, Prepared, Committed, Aborted}
@@ -22,8 +22,6 @@ active proctype Coordinator(){
 	bool finalDecision = true;
 	bool participants[PARTICIPANT_NUM];
 	byte participantID;
-	assert(!participants[0]);
-	assert(!participants[1]);
 
 	mtype Coordinator_state = Active;
     
@@ -36,10 +34,11 @@ active proctype Coordinator(){
 		{ 
 		   coordinatorChannelFromParticipant ? receivedDecision, participantID;
 		   if
-		   :: receivedDecision == false -> finalDecision = false; Coordinator_state = Aborted;
+		   :: receivedDecision == false -> finalDecision = false; Coordinator_state = Aborted; i--;
 		   :: else -> i--; participants[participantID] = true; /* This P agrees to commit*/
 		   fi
 		}
+	:: else -> break;
 	od;
 
 	coordinatorChannelFromClient ? clientDecision;
@@ -75,7 +74,7 @@ active proctype Client()
 	byte receiveMsg;
 	bool finalDecision;
 
-    mtype Client_state = Active;
+   	 mtype Client_state = Active;
 
 	do
 	:: i < PARTICIPANT_NUM -> if
@@ -106,7 +105,7 @@ active proctype Client()
 
 	if
 	  :: Client_state == Prepared && finalDecision-> Client_state = Committed;
-      :: else -> Client_state = Aborted;
+     	 :: else -> Client_state = Aborted;
     fi
 
 }
@@ -131,7 +130,7 @@ proctype Participant(byte id)
 
     if
 	  :: Participant_state == Prepared && finalDecision-> Participant_state = Committed;
-      :: else -> Participant_state = Aborted;
+     	 :: else -> Participant_state = Aborted;
     fi
 
 }
