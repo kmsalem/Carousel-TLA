@@ -7,28 +7,28 @@ byte participants_involved[PARTICIPANT_NUM] = 0; // when the ith participant rec
 /* All proc's will start with Active.
       Coordinator: will get message from Client  
 */
-mtype{Active, Committed, Aborted}
+mtype{Active, Prepared, Committed, Aborted}
 mtype Coordinator_state;
 mtype Client_state;
 mtype Participant_state [6];
 
 chan clientChannelsFromParticipant = [1] of {byte};
-chan clientChannelsFromCoordinator = [1] of {mtype};
+chan clientChannelsFromCoordinator = [1] of {bool};
 
 chan participantChannelsFromClient[PARTICIPANT_NUM] = [2] of {byte}; // TID
-chan participantChannelsFromCoordinator[PARTICIPANT_NUM] = [1] of {mtype};
+chan participantChannelsFromCoordinator[PARTICIPANT_NUM] = [1] of {bool};
 
-// first time read form this channel: participant count; If second time read succeeds, the client's state is available to check.
-chan coordinatorChannelFromClient = [1] of {byte}
-// Coordinator will read ID of the ith participant form this channel. If read succeeds, the ith participant's state is available to check.  
-chan coordinatorChannelFromParticipant = [2] of {byte} 
+chan coordinatorChannelFromClient = [1] of {byte} // first time read: participant count; second time read: commit/abort
+chan coordinatorChannelFromParticipant = [2] of {bool, byte} // decision, ID
+
 
 
 active proctype Coordinator(){
 	byte clientDecision;
+	bool receivedDecision;
 
 	Coordinator_state = Active;
-	
+	bool finalDecision = true;
 	byte participantCount;
 	bool participants[PARTICIPANT_NUM];
 	byte participantID;
@@ -40,10 +40,9 @@ active proctype Coordinator(){
 	:: i > 0 ->
 		atomic
 		{ 
-		   coordinatorChannelFromParticipant ? participantID;
-		   // if this line is reached, the participant, whose ID is participantID, has updated its state
+		   coordinatorChannelFromParticipant ? receivedDecision, participantID;
 		   if
-		   :: Participant_state[participantID] == Aborted -> Coordinator_state = Aborted; i--;
+		   :: receivedDecision == false -> finalDecision = false; Coordinator_state = Aborted; i--;
 		   :: else -> i--; participants[participantID] = true; /* This P agrees to commit*/
 		   fi
 		}
@@ -51,10 +50,10 @@ active proctype Coordinator(){
 	od;
 
 	coordinatorChannelFromClient ? clientDecision;
-    // if this line is reached, Client has already made a decision
+ 
 	if
-	::  Client_state == Aborted ->
-		 Coordinator_state = Aborted;
+	:: clientDecision == 0 ->
+		finalDecision = false; Coordinator_state = Aborted;
 	fi
 
 	if
@@ -63,11 +62,11 @@ active proctype Coordinator(){
 
 	i = 0;
 	
-	clientChannelsFromCoordinator ! Coordinator_state; 
+	clientChannelsFromCoordinator ! finalDecision;
 	do
 	::i < PARTICIPANT_NUM -> 
 		if
-		:: participants[i] -> participantChannelsFromCoordinator[i] ! Coordinator_state;
+		:: participants[i] && participants_involved[i] == 1-> participantChannelsFromCoordinator[i] ! finalDecision;
 		fi
 		i++;
 	::else -> 
@@ -82,7 +81,7 @@ active proctype Client()
 	byte numSent = 0; 
 	byte TID = _pid;
 	byte receiveMsg;
-	mtype finalDecision;
+	bool finalDecision;
 
 	Client_state = Active;
 
@@ -106,17 +105,18 @@ active proctype Client()
 	:: else -> break;
 	od;
 
-    // notify Coordinator
 	if
 	  ::  coordinatorChannelFromClient ! 0;                         // In this case, the client's state is Active, which means it agrees to commit. 
 	  ::  Client_state = Aborted; coordinatorChannelFromClient ! 1; // The client's state is Aborted here. (disagree to commit)
 	fi
 
 	clientChannelsFromCoordinator ? finalDecision;
-	// if this line is reached, the final decision has already made by coordinator    
+
+	// if this line is reached, the final decision has already made by coordinator  
+
 	if
-	  :: Coordinator_state  == Committed -> Client_state = Committed;
-     	 :: else -> Client_state = Aborted;
+	  :: Client_state == Active && finalDecision-> Client_state = Committed;
+      :: else -> Client_state = Aborted;
     fi
 
 }
@@ -126,7 +126,7 @@ proctype Participant(byte id)
 	byte receiveTID;
 	byte receiveClientId;
 	participant_num++;
-	mtype finalDecision;
+	bool finalDecision;
 	
 	Participant_state [id] = Active;
 
@@ -135,15 +135,15 @@ proctype Participant(byte id)
     
     // update state and notify the coordinator
 	if
-		::coordinatorChannelFromParticipant ! id;                                    // In this case, the participant's state is Active, which means it agrees to commit. 
-		::Participant_state[id] = Aborted -> coordinatorChannelFromParticipant ! id; // The participant's state is Aborted here. (disagree to commit)
+		::coordinatorChannelFromParticipant ! true, id; Participant_state[id] = Prepared;
+	    ::coordinatorChannelFromParticipant ! false, id; Participant_state[id] = Aborted;
 	fi
 
 	participantChannelsFromCoordinator[id] ? finalDecision;
 
     if
-	  :: Coordinator_state == Committed -> Participant_state[id] = Committed;
-     	 :: else -> Participant_state[id] = Aborted;
+	  :: Participant_state[id] == Prepared && finalDecision-> Participant_state[id] = Committed;
+	  :: else -> Participant_state[id] = Aborted;
     fi
 
 }
@@ -161,51 +161,3 @@ init
 	}
 }
 
-// flag and index is declared for verifications in never, since it seems we are not able to declare local vars in never
-flag = true;
-int i = 0;
-
-never
-{
-	do
-	
-    /* If Client_state is committed, coordinator should not be Aborted and no participant involved should be Aborted. (Also, participant not involved should not be  
-	      committed)*/
-	:: if 	
-	   ::  Client_state == Committed &&  Coordinator_state == Aborted -> break;
-	   ::  Client_state == Committed && Coordinator_state == Committed -> i = 0;
-	              do
-	              :: i < PARTICIPANT_NUM -> 
-	                    if
-	                    :: participants_involved[i] == 1 && Participant_state[i] == Aborted -> flag = false;break;
-                        :: participants_involved[i] == 0 && Participant_state[i] == Committed -> flag = false;break;
-                        :: else -> i++;
-                        fi
-	              :: i >= PARTICIPANT_NUM -> break;
-	              od;
-	              if
-	              ::flag == false -> break;
-	              ::else
-	              fi
-	    ::  else
-	    fi
-
-	/* If any participant_state is committed, then coordinator_state should be committed and client_state can not be aborted
-	:: i = 0;
-	   do
-	        :: i < PARTICIPANT_NUM -> 
-	                    if
-	                    :: participants_involved[i] == 1 && Participant_state[i] == Committed && (Coordinator_state != Commited || Client_state == Aborted)-> 
-	                                            flag = false;break;
-                        :: else -> i++;
-                        fi
-	        :: i >= PARTICIPANT_NUM -> break;
-	    od;
-	    if
-	        ::flag == false -> break;
-	        ::else
-	    fi
-    
-    ::
-	od
-}
