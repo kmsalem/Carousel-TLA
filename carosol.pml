@@ -18,8 +18,7 @@ mtype Coordinator_state;
 mtype Client_state;
 mtype Participant_state[PARTICIPANT_NUM];
 
-
-
+byte participants_involved[PARTICIPANT_NUM] = 0; // when the ith participant received a message,  participant_involved[i] will be set to 1.
 
 active proctype Coordinator(){
 	bool receivedDecision;
@@ -27,7 +26,6 @@ active proctype Coordinator(){
 	
 	byte participantCount;
 	bool finalDecision = true;
-	bool participants[PARTICIPANT_NUM];
 	byte participantID;
 
 	Coordinator_state = Active;
@@ -42,7 +40,7 @@ active proctype Coordinator(){
 		   coordinatorChannelFromParticipant ? receivedDecision, participantID;
 		   if
 		   :: receivedDecision == false -> finalDecision = false; Coordinator_state = Aborted; i--;
-		   :: else -> i--; participants[participantID] = true; /* This P agrees to commit*/
+		   :: else -> i--; /* This P agrees to commit*/
 		   fi
 		}
 	:: else -> break;
@@ -52,6 +50,7 @@ active proctype Coordinator(){
 	if
 	:: clientDecision == 0 ->
 		finalDecision = false; Coordinator_state = Aborted;
+	:: else -> skip;
 	fi
 
 	i = 0;
@@ -60,7 +59,8 @@ active proctype Coordinator(){
 	do
 	::i < PARTICIPANT_NUM -> 
 		if
-		:: participants[i] -> participantChannelsFromCoordinator[i] ! finalDecision;
+		:: participants_involved[i] -> participantChannelsFromCoordinator[i] ! finalDecision;
+		:: else -> skip;
 		fi
 		i++;
 	::else -> 
@@ -85,8 +85,9 @@ active proctype Client()
    	 Client_state = Active;
 
 	do
-	:: i < PARTICIPANT_NUM -> if
-		:: participantChannelsFromClient[i] ! TID; i++; numSent++;
+	:: i < PARTICIPANT_NUM -> 
+	    if
+		:: participantChannelsFromClient[i] ! TID;participants_involved[i] = 1; i++; numSent++;
 		:: i++;
 		fi
 	:: i >= PARTICIPANT_NUM -> break;
@@ -113,7 +114,7 @@ active proctype Client()
 
 	if
 	  :: Client_state == Active && finalDecision-> Client_state = Committed;
-     	 :: else -> Client_state = Aborted;
+      :: else -> Client_state = Aborted;
     fi
 
 }
@@ -138,7 +139,7 @@ proctype Participant(byte id)
 
     if
 	  :: Participant_state[id] == Prepared && finalDecision-> Participant_state[id] = Committed;
-     	 :: else -> Participant_state[id] = Aborted;
+      :: else -> Participant_state[id] = Aborted;
     fi
 
 }
