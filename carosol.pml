@@ -147,6 +147,11 @@ proctype Participant(byte id)
 	od;
 }
 
+proctype failParticipant(byte id)
+{
+	Participant_state[id] = Active; 
+}
+
 init
 {
 	atomic
@@ -157,18 +162,20 @@ init
 		:: i < PARTICIPANT_NUM -> run Participant(i); i++;
 		:: i >= PARTICIPANT_NUM -> break;
 		od;
+
+		//This should reset a participant(simulates a failure), and should break some invariance
+		//run failParticipant(0);
 	}
 }
 
-/*ltl client_Committed_Co {[] ( (Client_state == Committed) -> (Coordinator_state == Committed))}*/
+ltl client_Committed_Co {[] ( (Client_state == Committed) -> (Coordinator_state == Committed))}
 
-/*ltl client_Committed_P0_involved {[] ( (Client_state == Committed && participants_involved[0] == 1) -> 
-                                        ((Participant_state[0] == Committed || Participant_state[0] == Prepared) && <> (Participant_state[0] == Committed)) )}*/
+ltl client_Committed_P0_involved {[] ( (Client_state == Committed && participants_involved[0] == 1) -> 
+                                        ((Participant_state[0] == Committed || Participant_state[0] == Prepared) && <> (Participant_state[0] == Committed)) )}
 
-/*ltl client_Committed_P0_not_involved {[] ( (Client_state == Committed && participants_involved[0] == 0) -> (Participant_state[0] != Committed) )}*/
+ltl client_Committed_P0_not_involved {[] ( (Client_state == Committed && participants_involved[0] == 0) -> (Participant_state[0] != Committed) )}
 
-/*ltl client_Aborted_P3_involved {[] ( (Client_state == Aborted && participants_involved[3] == 1) -> <> (Participant_state[3] == Aborted) )}*/
+ltl client_Aborted_P3_involved {[] ( (Client_state == Aborted && participants_involved[3] == 1) -> <> (Participant_state[3] == Aborted) )}
 
-/*ltl P3_committed {[] ( (Participant_state[3] == Committed) -> ( Coordinator_state == Committed && Client_state != Aborted && <> (Client_state == Committed) ) )}*/
-
+ltl P3_committed {[] ( (Participant_state[3] == Committed) -> ( Coordinator_state == Committed && Client_state != Aborted && <> (Client_state == Committed) ) )}
 
