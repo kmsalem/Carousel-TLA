@@ -54,6 +54,11 @@ active proctype Coordinator(){
 	fi
 
 	i = 0;
+
+	if
+	::Coordinator_state == Active -> Coordinator_state = Committed;
+	::else -> skip;
+	fi
 	
 	clientChannelsFromCoordinator ! finalDecision; 
 	do
@@ -67,10 +72,7 @@ active proctype Coordinator(){
 		break;	
 	od;
 
-	if
-	::Coordinator_state == Active -> Coordinator_state = Committed;
-	::else -> skip;
-	fi
+	
 
 }
 
@@ -133,8 +135,8 @@ proctype Participant(byte id)
 		participantChannelsFromClient[id] ? receiveTID;
 		clientChannelsFromParticipant ! receiveTID;
 		if
-			::coordinatorChannelFromParticipant ! true, id; Participant_state[id] = Prepared;
-			::coordinatorChannelFromParticipant ! false, id; Participant_state[id] = Aborted;
+			::Participant_state[id] = Prepared; coordinatorChannelFromParticipant ! true, id; 
+			::Participant_state[id] = Aborted; coordinatorChannelFromParticipant ! false, id; 
 		fi
 	:: Participant_state[id] == Prepared || Participant_state[id] == Aborted ->
 		participantChannelsFromCoordinator[id] ? finalDecision;
@@ -158,10 +160,15 @@ init
 	}
 }
 
-never
-{
-	do
-	:: !(participant_num <= PARTICIPANT_NUM) -> break
-	:: else
-	od
-}
+/*ltl client_Committed_Co {[] ( (Client_state == Committed) -> (Coordinator_state == Committed))}*/
+
+/*ltl client_Committed_P0_involved {[] ( (Client_state == Committed && participants_involved[0] == 1) -> 
+                                        ((Participant_state[0] == Committed || Participant_state[0] == Prepared) && <> (Participant_state[0] == Committed)) )}*/
+
+/*ltl client_Committed_P0_not_involved {[] ( (Client_state == Committed && participants_involved[0] == 0) -> (Participant_state[0] != Committed) )}*/
+
+/*ltl client_Aborted_P3_involved {[] ( (Client_state == Aborted && participants_involved[3] == 1) -> <> (Participant_state[3] == Aborted) )}*/
+
+/*ltl P3_committed {[] ( (Participant_state[3] == Committed) -> ( Coordinator_state == Committed && Client_state != Aborted && <> (Client_state == Committed) ) )}*/
+
+
