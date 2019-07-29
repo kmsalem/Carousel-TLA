@@ -1,4 +1,4 @@
-#define PARTICIPANT_NUM 6
+#define PARTICIPANT_NUM 4
 // Only 1 coordinator, 1 client
 
 mtype{Active, Prepared, Committed, Aborted}
@@ -128,20 +128,21 @@ proctype Participant(byte id)
 
 	Participant_state[id] = Active;
 	
-	participantChannelsFromClient[id] ? receiveTID -> clientChannelsFromParticipant ! receiveTID;
-    
-	if
-		::coordinatorChannelFromParticipant ! true, id; Participant_state[id] = Prepared;
-		::coordinatorChannelFromParticipant ! false, id; Participant_state[id] = Aborted;
-	fi
-	
-	participantChannelsFromCoordinator[id] ? finalDecision;
-
-    if
-	  :: Participant_state[id] == Prepared && finalDecision-> Participant_state[id] = Committed;
-      :: else -> Participant_state[id] = Aborted;
-    fi
-
+	do
+	:: Participant_state[id] == Active ->
+		participantChannelsFromClient[id] ? receiveTID;
+		clientChannelsFromParticipant ! receiveTID;
+		if
+			::coordinatorChannelFromParticipant ! true, id; Participant_state[id] = Prepared;
+			::coordinatorChannelFromParticipant ! false, id; Participant_state[id] = Aborted;
+		fi
+	:: Participant_state[id] == Prepared || Participant_state[id] == Aborted ->
+		participantChannelsFromCoordinator[id] ? finalDecision;
+		if
+		  :: Participant_state[id] == Prepared && finalDecision-> Participant_state[id] = Committed; break;
+		  :: else -> Participant_state[id] = Aborted; break;
+		fi
+	od;
 }
 
 init
