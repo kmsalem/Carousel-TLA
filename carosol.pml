@@ -84,41 +84,50 @@ active proctype Client()
 	byte receiveMsg;
 	bool finalDecision;
 
-   	 Client_state = Active;
+   	Client_state = Active;
 
-	do
-	:: i < PARTICIPANT_NUM -> 
-	    if
-		:: participantChannelsFromClient[i] ! TID;participants_involved[i] = 1; i++; numSent++;
-		:: i++;
-		fi
-	:: i >= PARTICIPANT_NUM -> break;
-	od;
-	
-	coordinatorChannelFromClient ! numSent;
-	
-	byte temp = numSent;
+   	
+   	do
+   	:: Client_state == Active;
+	   do
+	   :: i < PARTICIPANT_NUM -> 
+	       if
+		   :: participantChannelsFromClient[i] ! TID;participants_involved[i] = 1; i++; numSent++;
+		   :: i++;
+		   fi
+	   :: i >= PARTICIPANT_NUM -> break;
+	   od;
+	   coordinatorChannelFromClient ! numSent;
+	   byte temp = numSent;
+	   do		 
+	   :: numSent > 0 ->
+		    clientChannelsFromParticipant ? receiveMsg;
+		    assert(receiveMsg == TID);
+		    numSent--;
+	   :: else -> break;
+	   od;
+	   if
+	   ::  coordinatorChannelFromClient ! 1;
+	   ::  coordinatorChannelFromClient ! 0; Client_state = VoteAbort;break;
+	   fi
 
-	do		 
-	:: numSent > 0 ->
-		clientChannelsFromParticipant ? receiveMsg;
-		assert(receiveMsg == TID);
-		numSent--;
-	:: else -> break;
-	od;
+       clientChannelsFromCoordinator ? finalDecision;
 
-	if
-	  ::  coordinatorChannelFromClient ! 1;
-	  ::  coordinatorChannelFromClient ! 0; Client_state = Aborted;
-	fi
+	   if
+	   :: finalDecision -> Client_state = Committed;
+       :: else -> Client_state = Aborted;
+       fi
+       break;
+            
+    :: Client_state == VoteAbort;
+       clientChannelsFromCoordinator ? finalDecision;
+       assert(finalDecision == false);
+       Client_state = Aborted;
+       break;
 
-	clientChannelsFromCoordinator ? finalDecision;
-
-	if
-	  :: Client_state == Active && finalDecision-> Client_state = Committed;
-      :: else -> Client_state = Aborted;
-    fi
-
+    :: Client_state == Aborted || Client_state == Committed -> break;
+    
+    od
 }
 
 proctype Participant(byte id)
@@ -169,6 +178,7 @@ init
 	}
 }
 
+
 ltl client_Committed_Co {[] ( (Client_state == Committed) -> (Coordinator_state == Committed))}
 
 ltl client_Committed_P0_involved {[] ( (Client_state == Committed && participants_involved[0] == 1) -> 
@@ -179,4 +189,3 @@ ltl client_Committed_P0_not_involved {[] ( (Client_state == Committed && partici
 ltl client_Aborted_P3_involved {[] ( (Client_state == Aborted && participants_involved[3] == 1) -> <> (Participant_state[3] == Aborted) )}
 
 ltl P3_committed {[] ( (Participant_state[3] == Committed) -> ( Coordinator_state == Committed && Client_state != Aborted && <> (Client_state == Committed) ) )}
-
