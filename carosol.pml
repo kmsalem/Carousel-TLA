@@ -1,7 +1,7 @@
 #define PARTICIPANT_NUM 4
 // Only 1 coordinator, 1 client
 
-mtype{Active, Prepared, Committed, Aborted}
+mtype{Active, Prepared, Committed, Aborted, VoteAbort, Failed}
 
 chan clientChannelsFromParticipant = [1] of {byte};
 chan clientChannelsFromCoordinator = [1] of {bool};
@@ -136,13 +136,14 @@ proctype Participant(byte id)
 		clientChannelsFromParticipant ! receiveTID;
 		if
 			::Participant_state[id] = Prepared; coordinatorChannelFromParticipant ! true, id; 
-			::Participant_state[id] = Aborted; coordinatorChannelFromParticipant ! false, id; 
+			::Participant_state[id] = VoteAbort; coordinatorChannelFromParticipant ! false, id; 
 		fi
-	:: Participant_state[id] == Prepared || Participant_state[id] == Aborted ->
+	:: Participant_state[id] == Prepared || Participant_state[id] == VoteAbort ->
 		participantChannelsFromCoordinator[id] ? finalDecision;
+		assert(!(Participant_state[id] == VoteAbort && finalDecision));
 		if
-		  :: Participant_state[id] == Prepared && finalDecision-> Participant_state[id] = Committed; break;
-		  :: else -> Participant_state[id] = Aborted; break;
+		:: Participant_state[id] == Prepared && finalDecision -> Participant_state[id] = Committed;
+		:: else -> Participant_state[id] = Aborted;
 		fi
 	od;
 }
