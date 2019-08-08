@@ -87,7 +87,7 @@ active proctype Client()
    	Client_state = Active;
 
    	
-   	do
+L1: do
    	:: Client_state == Active;
 	   do
 	   :: i < PARTICIPANT_NUM -> 
@@ -108,7 +108,7 @@ active proctype Client()
 	   od;
 	   if
 	   ::  coordinatorChannelFromClient ! 1;
-	   ::  coordinatorChannelFromClient ! 0; Client_state = VoteAbort;break;
+	   ::  coordinatorChannelFromClient ! 0; Client_state = VoteAbort; goto L1;
 	   fi
 
        clientChannelsFromCoordinator ? finalDecision;
