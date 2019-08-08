@@ -29,51 +29,55 @@ active proctype Coordinator(){
 	byte participantID;
 
 	Coordinator_state = Active;
-    
-	coordinatorChannelFromClient ? participantCount;
-    byte i = participantCount;
 	
-	do		 
-	:: i > 0 ->
-		atomic
-		{ 
-		   coordinatorChannelFromParticipant ? receivedDecision, participantID;
-		   if
-		   :: receivedDecision == false -> finalDecision = false; Coordinator_state = Aborted; i--;
-		   :: else -> i--; /* This P agrees to commit*/
-		   fi
-		}
-	:: else -> break;
-	od;
-
-	coordinatorChannelFromClient ? clientDecision;
-	if
-	:: clientDecision == 0 ->
-		finalDecision = false; Coordinator_state = Aborted;
-	:: else -> skip;
-	fi
-
-	i = 0;
-
-	if
-	::Coordinator_state == Active -> Coordinator_state = Committed;
-	::else -> skip;
-	fi
-	
-	clientChannelsFromCoordinator ! finalDecision; 
 	do
-	::i < PARTICIPANT_NUM -> 
+	:: Coordinator_state == Active ->   
+		coordinatorChannelFromClient ? participantCount;
+		byte i = participantCount;
+		
+		do		 
+		:: i > 0 ->
+			atomic
+			{ 
+			   coordinatorChannelFromParticipant ? receivedDecision, participantID;
+			   if
+			   :: receivedDecision == false -> finalDecision = false; i--;
+			   :: else -> i--; /* This P agrees to commit*/
+			   fi
+			}
+		:: else -> break;
+		od;
+		
+		Coordinator_state = Prepared;
+		
+	:: Coordinator_state == Prepared ->		
+		coordinatorChannelFromClient ? clientDecision;
 		if
-		:: participants_involved[i] -> participantChannelsFromCoordinator[i] ! finalDecision;
+		:: clientDecision == 0 ->
+			finalDecision = false;
 		:: else -> skip;
 		fi
-		i++;
-	::else -> 
-		break;	
-	od;
-
+		
+		if
+		:: finalDecision -> Coordinator_state = Committed;
+		:: else ->  Coordinator_state = Aborted;
+		fi
 	
-
+	:: Coordinator_state == Committed || Coordinator_state == Aborted ->
+		clientChannelsFromCoordinator ! finalDecision; 
+		i = 0;
+		do
+		::i < PARTICIPANT_NUM -> 
+			if
+			:: participants_involved[i] -> participantChannelsFromCoordinator[i] ! finalDecision;
+			:: else -> skip;
+			fi
+			i++;
+		::else -> 
+			break;	
+		od;
+		break;
+	od;
 }
 
 active proctype Client()
@@ -145,12 +149,13 @@ proctype Participant(byte id)
 		:: Participant_state[id] == Prepared && finalDecision -> Participant_state[id] = Committed;
 		:: else -> Participant_state[id] = Aborted;
 		fi
+	:: else -> break;
 	od;
 }
 
 proctype failParticipant(byte id)
 {
-	Participant_state[id] = Active; 
+	Participant_state[id] = Failed; 
 }
 
 init
