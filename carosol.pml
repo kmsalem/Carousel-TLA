@@ -1,4 +1,4 @@
-#define PARTICIPANT_NUM 4
+#define PARTICIPANT_NUM 3
 // Only 1 coordinator, 1 client
 
 mtype{Active, Prepared, Committed, Aborted, VoteAbort, Failed}
